@@ -1,14 +1,23 @@
 <template>
   <div id="app">
-    <div id="header">
-      <p>Header</p>
-    </div>
+    <Header id="header"></Header>
     <router-view id="content"/>
-    <div id="footer">
-      <p>Footer</p>
-    </div>
+    <Footer id="footer"></Footer>
   </div>
 </template>
+
+<script>
+  // @ is an alias to /src
+  import Header from '@/components/Header.vue'
+  import Footer from '@/components/Footer.vue'
+
+  export default {
+    components: {
+      Header,
+      Footer,
+    }
+  }
+</script>
 
 <style>
   html, body {
@@ -21,7 +30,6 @@
 <style scoped>
 
   #app {
-
     font-family: 'Avenir', Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -43,7 +51,6 @@
   }
 
   #header {
-    padding: 10px;
     width: 100%;
     flex: 0 0 auto;
     /*background-color: lime;*/
@@ -58,7 +65,6 @@
 
   #footer {
     width: 100%;
-    padding: 10px;
     flex: 0 0 auto;
     /*background-color: orange;*/
   }
