@@ -621,7 +621,7 @@ class NodeKaptivo {
       frame.width = '0px';
       frame.height = '0px';
       frame.src = url;
-      frame.onload = x => {
+      frame.onload = () => {
         setTimeout(() => {
           if (isWaitingFor(state)) {
             externalReject(state, new Error('Unexpected error in authorize API call'));
@@ -891,7 +891,8 @@ function init(cb) {
           if (params.access_token) {
             externalResolve(params.state, params.access_token);
           } else if (params.error) {
-            externalReject(params.state, params.error);
+            let parsedError = JSON.parse(decodeURIComponent(params.error));
+            externalReject(params.state, parsedError || params.error);
           }
           clearExternalResolver(params.state);
         }
