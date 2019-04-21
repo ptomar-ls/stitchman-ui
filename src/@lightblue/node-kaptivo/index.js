@@ -635,6 +635,7 @@ class NodeKaptivo {
         frame.height = '100%';
       }
       frame.src = url;
+      if (scope !== 'view' && scope !== 'local_view' && scope != 'config' && scope !== 'pair') {
       frame.onload = () => {
         setTimeout(() => {
           if (isWaitingFor(state)) {
@@ -642,6 +643,7 @@ class NodeKaptivo {
           }
         }, 500);
       };
+      }
 
       try {
       let prom = new Promise((resolve, reject) => {
