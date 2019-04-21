@@ -636,6 +636,7 @@ class NodeKaptivo {
 
       accessToken = await prom;
       clearExternalResolver(state);
+      frame.remove();
     }
 
     log('** authorization flow complete');
