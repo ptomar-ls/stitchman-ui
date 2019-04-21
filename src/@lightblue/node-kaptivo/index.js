@@ -629,14 +629,17 @@ class NodeKaptivo {
         }, 500);
       };
 
+      try {
       let prom = new Promise((resolve, reject) => {
         setExternalResolver(state, {resolve, reject});
         el.appendChild(frame);
       });
 
       accessToken = await prom;
+      } finally {
       clearExternalResolver(state);
       frame.remove();
+    }
     }
 
     log('** authorization flow complete');
