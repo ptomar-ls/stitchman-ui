@@ -121,6 +121,10 @@ function externalReject(state, value) {
   clearExternalResolver(state);
 }
 
+function isWaitingFor(state) {
+  return !!g_resolvers[state];
+}
+
 
 function parseAuthResult(url) {
   let response = url.split('#')[1] || ''; //! actual response is behind '#'
@@ -617,6 +621,13 @@ class NodeKaptivo {
       frame.width = '0px';
       frame.height = '0px';
       frame.src = url;
+      frame.onload = x => {
+        setTimeout(() => {
+          if (isWaitingFor(state)) {
+            externalReject(state, new Error('Unexpected error in authorize API call'));
+          }
+        }, 500);
+      };
 
       let prom = new Promise((resolve, reject) => {
         setExternalResolver(state, {resolve, reject});
@@ -879,6 +890,8 @@ function init(cb) {
         if (params.state) {
           if (params.access_token) {
             externalResolve(params.state, params.access_token);
+          } else if (params.error) {
+            externalReject(params.state, params.error);
           }
           clearExternalResolver(params.state);
         }
