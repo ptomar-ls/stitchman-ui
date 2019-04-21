@@ -534,9 +534,10 @@ class NodeKaptivo {
    * @param {string} param.admin_name (Optional) Kaptivo admin user name for 'remote_config' scope
    * @param {string} param.admin_password (Optional) Kaptivo admin user password for 'remote_config' scope
    * @param {string} param.user_name local participant's name when requesting 'view' or 'local_view' scope
+   * @param {Element} param.iframe_parent (Optional) parent element of the iframe that handles the auth-flow on Browsers. If not given, the method tries to find an element with id 'kaptivo_auth'. If it does not exist either, the method created a small iframe at the bottom right corner of html body.
    * @return {Promise<String>} a promise that resolves the issued access token
    */
-  async authorize({scope, pairing_token, pin, features, admin_name, admin_password, user_name}) {
+  async authorize({scope, pairing_token, pin, features, admin_name, admin_password, user_name, iframe_parent}) {
     await this._chooseApiOrigin();
 
     const API_URL = this[PRIVATE].apiOrigin + '/api/v2/auth/authorize';
@@ -616,10 +617,23 @@ class NodeKaptivo {
     } else {
       //! Browser
 
-      let el = document.getElementById('ifcontainer'); // TODO: pass this from the caller
+      let minimizeIframe = false;  //! when the parent of iframe is not given by the caller, we minimize it.
+      let el = iframe_parent;
+      if (!el) {
+        el =  document.getElementById('kaptivo_auth');
+        if (!el) {
+          el = document.body;
+          minimizeIframe = true;
+        }
+      }
       let frame = window.document.createElement('iframe');
+      if (minimizeIframe) {
       frame.width = '0px';
       frame.height = '0px';
+      } else {
+        frame.width = '100%';
+        frame.height = '100%';
+      }
       frame.src = url;
       frame.onload = () => {
         setTimeout(() => {
