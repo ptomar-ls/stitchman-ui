@@ -60,7 +60,7 @@
         this.setupRoomPairing({kaptivoId: this.kaptivoId, admin_name: this.adminName, admin_password: this.adminPassword})
           .then(() => {
             this.setMessage({ message: 'Pairing done', timeout: 5000});
-            setTimeout(() => { this.$router.push('home'); }, 500)
+            setTimeout(() => { this.$router.push({name: 'home'}); }, 500)
           })
           .catch(err => { this.setMessage({ message: err.toString(), timeout: 5000}); })
           .finally(() => { this.pairingInProgress = false });
