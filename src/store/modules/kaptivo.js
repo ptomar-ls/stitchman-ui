@@ -21,8 +21,8 @@ if (!g_systemId) {
   g_systemId = require('uuid/v4')();
   localStorage.setItem(SYSTEMID_KEY, g_systemId);
 }
-let g_mirroringControlPad = false;
-let g_mirroringBoostCount = 0;
+let g_watchingKaptivo = false;
+let g_watchBoostCount = 0;
 
 
 async function getKaptivo(kaptivoId) {
@@ -93,19 +93,19 @@ const actions = {
   /**
    *  Control Pad Mirroring
    */
-  async startControlPadMirroring ({state, commit}) {
+  async startWatchingKaptivo ({state, commit}) {
     try {
-      if (!g_mirroringControlPad && state.pairingToken) {
-        g_mirroringControlPad = true;
+      if (!g_watchingKaptivo && state.pairingToken) {
+        g_watchingKaptivo = true;
         let kap = await getKaptivo();
         let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
-        while (g_mirroringControlPad) {
+        while (g_watchingKaptivo) {
           let path = '/api/v2/peripheral/controlpad';
           let controlPadStatus = (await kap.apiGet({path, accessToken})).result;
           commit('setControlPadStatus', controlPadStatus);
-          if (0 < g_mirroringBoostCount) {
+          if (0 < g_watchBoostCount) {
             await sleep(200);
-            --g_mirroringBoostCount;
+            --g_watchBoostCount;
           } else {
             await sleep(1000);
           }
@@ -119,11 +119,11 @@ const actions = {
         throw err;
       }
     } finally {
-      g_mirroringControlPad = false;
+      g_watchingKaptivo = false;
     }
   },
-  async stopControlPadMirroring ({state, commit}) {
-    g_mirroringControlPad = false;
+  async stopWatchingKaptivo ({state, commit}) {
+    g_watchingKaptivo = false;
   },
   async pushControlPadButton ({state, commit}) {
     try {
@@ -131,7 +131,7 @@ const actions = {
       let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
       let path = '/api/v2/peripheral/controlpad/input';
       let body = { trigger: 'toggle_camera_enable' };
-      g_mirroringBoostCount = 10;
+      g_watchBoostCount = 10;
       await kap.apiPut({path, accessToken, body});
     } catch (err) {
       console.log(err.user_message || err.toString());

@@ -17,7 +17,7 @@ import { mapGetters, mapActions } from 'vuex'
 
 export default {
   mounted () {
-    this.startControlPadMirroring();
+    this.startWatchingKaptivo();
     this.blinkTimerId = setInterval(()=>{
       this.blinkOn = !this.blinkOn;
     }, 1000);
@@ -44,7 +44,7 @@ export default {
   },
   methods: {
     ...mapActions([
-      'startControlPadMirroring',
+      'startWatchingKaptivo',
       'pushControlPadButton',
     ]),
   },
