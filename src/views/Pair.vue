@@ -6,7 +6,7 @@
         <form>
           <div class="formrow">
             <div class="itemlabel">Kaptivo ID</div>
-            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoId" placeholder="HQKZRP"></div>
+            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoId"></div>
           </div>
           <div class="formrow">
             <div class="itemlabel">Kaptivo admin name</div>
@@ -40,7 +40,7 @@
     },
     data() {
       return {
-        kaptivoId: '',
+        kaptivoId: (this.$store.getters.kaptivoId || ''),
         adminName: '',
         adminPassword: '',
         pairingInProgress: false,
