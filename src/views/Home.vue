@@ -1,11 +1,14 @@
 <template>
   <div class="home">
-    <h1>This is a home page</h1>
+    <h3>{{kaptivoId}}</h3>
+    <control-pad></control-pad>
   </div>
 </template>
 
 <script>
   import { mapGetters, mapActions } from 'vuex'
+  import ControlPad from '../components/ControlPad.vue'
+
   export default {
     mounted() {
       if (!this.isPaired) {
@@ -14,6 +17,7 @@
     },
     computed: {
       ...mapGetters([
+        'kaptivoId',
         'isPaired'
       ]),
     },
@@ -22,6 +26,15 @@
         'setMessage',
       ]),
     },
+    components: {
+      ControlPad,
+    },
   }
 </script>
 
+
+<style>
+  .home {
+    height: 100%;
+  }
+</style>
