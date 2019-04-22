@@ -23,7 +23,11 @@
     margin: 0.5em;
     padding: 0;
     font-size: large;
+    color: white;
     /*background-color: lime;*/
   }
 
+  .footer {
+    background-color: #46A9DD;
+  }
 </style>

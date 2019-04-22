@@ -13,11 +13,13 @@ export default {
 <style scoped>
 
   .header {
-    margin: 10px;
+    padding: 10px;
+    background-color: #46A9DD;
   }
 
   .link {
     padding: 10px;
+    color: white;
   }
 
 </style>
