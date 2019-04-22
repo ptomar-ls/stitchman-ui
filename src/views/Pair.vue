@@ -58,7 +58,10 @@
         this.pairingInProgress = true;
         this.setMessage({ message: `Pairing with ${this.kaptivoId} in progress...`, timeout: 5000});
         this.setupRoomPairing({kaptivoId: this.kaptivoId, admin_name: this.adminName, admin_password: this.adminPassword})
-          .then(pairingToken => { this.setMessage({ message: 'Pairing done', timeout: 5000}); })
+          .then(pairingToken => {
+            this.setMessage({ message: 'Pairing done', timeout: 5000});
+            setTimeout(() => { this.$router.push('home'); }, 500)
+          })
           .catch(err => { this.setMessage({ message: err.toString(), timeout: 5000}); })
           .finally(() => { this.pairingInProgress = false });
       },
