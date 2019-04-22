@@ -45,6 +45,38 @@ const getters = {
 
 // actions
 const actions = {
+  async setupRoomPairing ({state, commit}, {kaptivoId, admin_name, admin_password}) {
+    try {
+      let kap = null;
+      let info = null;
+      try {
+        kap = new nodeKaptivo.NodeKaptivo({kaptivoId});
+        info = (await kap.apiGet({path: '/api/discovery/info'})).result;
+        console.log('IP = ' + kap.getKaptivoIp());
+        console.log('FriendlyName = ' + info.friendly_name);
+      } catch (e) {
+        throw new Error('Kaptivo not accessible')
+      }
+
+      let accessToken = null;
+      if (admin_name && admin_password) {
+        accessToken = await kap.authorize({scope: 'remote_config', admin_name, admin_password});
+      }
+
+      let paired_identity = 'PAIREDIDENTITY';
+      let pairing_description = 'Kaptivo Manager';
+      let roomPairingToken = await kap.postRoomPairing({accessToken, paired_identity, pairing_description, override:true});
+
+      return roomPairingToken;
+    } catch (err) {
+      console.log(JSON.stringify(err));
+      if (err.user_message) {
+        throw err.user_message;
+      } else {
+        throw err;
+      }
+    }
+  },
 }
 
 // mutations
