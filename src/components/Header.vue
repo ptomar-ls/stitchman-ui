@@ -1,16 +1,23 @@
 <template>
   <div class="header">
-    <h1>HEADER</h1>
+    <router-link class="link" to="/">Home</router-link> |
+    <router-link class="link" to="/settings">Settings</router-link>
   </div>
 </template>
 
 <script>
 export default {
-  mounted() {
-    console.log('Header is smounted');
-  }
 }
 </script>
 
 <style scoped>
+
+  .header {
+    margin: 10px;
+  }
+
+  .link {
+    padding: 10px;
+  }
+
 </style>
