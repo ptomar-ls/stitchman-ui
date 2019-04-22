@@ -21,9 +21,12 @@ if (!g_systemId) {
   g_systemId = require('uuid/v4')();
   localStorage.setItem(SYSTEMID_KEY, g_systemId);
 }
+let g_mirroringControlPad = false;
+let g_mirroringBoostCount = 0;
 
 
 async function getKaptivo(kaptivoId) {
+  kaptivoId = kaptivoId || state.kaptivoId;
   let kap = g_kapCache[kaptivoId];
 
   if (!kap) {
@@ -43,16 +46,22 @@ async function getKaptivo(kaptivoId) {
 const state = {
   kaptivoId: localStorage.getItem(KAPTIVO_ID_KEY) || '',
   pairingToken: localStorage.getItem(PAIRING_TOKEN_KEY) || '',
+  controlPadStatus: {},
 }
 
 // getters
 const getters = {
   kaptivoId: state => state.kaptivoId,
   isPaired: state => !!(state.kaptivoId && state.pairingToken),
+  controlPadStatus: state => state.controlPadStatus,
 }
 
 // actions
 const actions = {
+
+  /**
+   *  Setup/Clear Pairing relationship to a Kaptivo
+   */
   async clearRoomPairing ({state, commit}) {
     console.log('clearRoomPairing is called');
     commit('setPairing', {kaptivoId: state.kaptivoId, pairingToken: ''});
@@ -80,6 +89,59 @@ const actions = {
       }
     }
   },
+
+  /**
+   *  Control Pad Mirroring
+   */
+  async startControlPadMirroring ({state, commit}) {
+    try {
+      if (!g_mirroringControlPad && state.pairingToken) {
+        g_mirroringControlPad = true;
+        let kap = await getKaptivo();
+        let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
+        while (g_mirroringControlPad) {
+          let path = '/api/v2/peripheral/controlpad';
+          let controlPadStatus = (await kap.apiGet({path, accessToken})).result;
+          commit('setControlPadStatus', controlPadStatus);
+          if (0 < g_mirroringBoostCount) {
+            await sleep(200);
+            --g_mirroringBoostCount;
+          } else {
+            await sleep(1000);
+          }
+        }
+      }
+    } catch (err) {
+      console.log(err.user_message || err.toString());
+      if (err.user_message) {
+        throw new Error(err.user_message);
+      } else {
+        throw err;
+      }
+    } finally {
+      g_mirroringControlPad = false;
+    }
+  },
+  async stopControlPadMirroring ({state, commit}) {
+    g_mirroringControlPad = false;
+  },
+  async pushControlPadButton ({state, commit}) {
+    try {
+      let kap = await getKaptivo();
+      let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
+      let path = '/api/v2/peripheral/controlpad/input';
+      let body = { trigger: 'toggle_camera_enable' };
+      g_mirroringBoostCount = 10;
+      await kap.apiPut({path, accessToken, body});
+    } catch (err) {
+      console.log(err.user_message || err.toString());
+      if (err.user_message) {
+        throw new Error(err.user_message);
+      } else {
+        throw err;
+      }
+    }
+  },
 }
 
 // mutations
@@ -91,6 +153,13 @@ const mutations = {
     localStorage.setItem(KAPTIVO_ID_KEY, kaptivoId);
     localStorage.setItem(PAIRING_TOKEN_KEY, pairingToken);
   },
+  setMirroringCp(state, mirroringCp) {
+    state.mirroringCp = !!mirroringCp;
+  },
+  setControlPadStatus(state, controlPadStatus) {
+    state.controlPadStatus = controlPadStatus;
+  },
+
 }
 
 export default {
