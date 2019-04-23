@@ -47,6 +47,10 @@ const state = {
   kaptivoId: localStorage.getItem(KAPTIVO_ID_KEY) || '',
   pairingToken: localStorage.getItem(PAIRING_TOKEN_KEY) || '',
   controlPadStatus: {},
+  sessionId: 0,
+  liveUrl: '',
+  frameWidth: 0,
+  frameHeight: 0,
 }
 
 // getters
@@ -54,6 +58,8 @@ const getters = {
   kaptivoId: state => state.kaptivoId,
   isPaired: state => !!(state.kaptivoId && state.pairingToken),
   controlPadStatus: state => state.controlPadStatus,
+  sessionId: state => state.sessionId,
+  liveUrl: state => state.liveUrl,
 }
 
 // actions
@@ -102,7 +108,29 @@ const actions = {
         while (g_watchingKaptivo) {
           let path = '/api/v2/peripheral/controlpad';
           let controlPadStatus = (await kap.apiGet({path, accessToken})).result;
-          commit('setControlPadStatus', controlPadStatus);
+          if (JSON.stringify(state.controlPadStatus) !== JSON.stringify(controlPadStatus)) {
+            commit('setControlPadStatus', controlPadStatus);
+          }
+
+          path = '/api/v2/observe';
+          let observedStatus = (await kap.apiGet({path})).result;
+          if (state.sessionId !== observedStatus.session_id) {
+            let sessionId = observedStatus.session_id;
+            let liveUrl = '';
+            let frameWidth = 0;
+            let frameHeight = 0;
+            if (sessionId) {
+              let sessionToken = observedStatus.token;
+              path = `/api/v2/sessions/${sessionId}/content/liveview`;
+              let sessionInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
+              liveUrl = sessionInfo.websocket_rle_uri;
+              path = `/api/v2/sessions/${sessionId}/content`;
+              let contentInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
+              frameWidth = contentInfo.pixel_width;
+              frameHeight = contentInfo.pixel_height;
+            }
+            commit('setSessionStatus', {sessionId, liveUrl, frameWidth, frameHeight});
+          }
           if (0 < g_watchBoostCount) {
             await sleep(200);
             --g_watchBoostCount;
@@ -159,7 +187,12 @@ const mutations = {
   setControlPadStatus(state, controlPadStatus) {
     state.controlPadStatus = controlPadStatus;
   },
-
+  setSessionStatus(state, {sessionId, liveUrl, frameWidth, frameHeight}) {
+    state.sessionId = sessionId;
+    state.liveUrl = liveUrl;
+    state.frameWidth = frameWidth;
+    state.frameHeight = frameHeight;
+  },
 }
 
 export default {
