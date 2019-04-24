@@ -53,6 +53,7 @@ const state = {
   pairingToken: localStorage.getItem(PAIRING_TOKEN_KEY) || '',
   controlPadStatus: {},
   sessionId: 0,
+  sessionToken: '',
   liveUrl: '',
   frameWidth: 0,
   frameHeight: 0,
@@ -120,12 +121,14 @@ const actions = {
           path = '/api/v2/observe';
           let observedStatus = (await kap.apiGet({path})).result;
           if (state.sessionId !== observedStatus.session_id) {
+            try {
             let sessionId = observedStatus.session_id;
+              let sessionToken = '';
             let liveUrl = '';
             let frameWidth = 0;
             let frameHeight = 0;
             if (sessionId) {
-              let sessionToken = observedStatus.token;
+                sessionToken = observedStatus.token;
               path = `/api/v2/sessions/${sessionId}/content/liveview`;
               let sessionInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
               liveUrl = sessionInfo.websocket_rle_uri;
@@ -134,7 +137,11 @@ const actions = {
               frameWidth = contentInfo.pixel_width;
               frameHeight = contentInfo.pixel_height;
             }
-            commit('setSessionStatus', {sessionId, liveUrl, frameWidth, frameHeight});
+              commit('setSessionStatus', {sessionId, sessionToken, liveUrl, frameWidth, frameHeight});
+            } catch (e) {
+              console.log('Session has been ended');
+              commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
+            }
           }
           if (0 < g_watchBoostCount) {
             await sleep(200);
@@ -175,6 +182,26 @@ const actions = {
       }
     }
   },
+  async endKaptivoSession ({state, commit}) {
+    if (state.sessionId && state.sessionToken) {
+      try {
+        let kap = await getKaptivo();
+        let accessToken = state.sessionToken;
+        let path = `/api/v2/sessions/${state.sessionId}`;
+        await kap.apiDelete({path, accessToken});
+        commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
+      } catch (err) {
+        console.log(err.user_message || err.toString());
+        if (err.user_message) {
+          throw new Error(err.user_message);
+        } else {
+          throw err;
+        }
+      }
+    }
+  },
+
+
 }
 
 // mutations
@@ -192,8 +219,9 @@ const mutations = {
   setControlPadStatus(state, controlPadStatus) {
     state.controlPadStatus = controlPadStatus;
   },
-  setSessionStatus(state, {sessionId, liveUrl, frameWidth, frameHeight}) {
+  setSessionStatus(state, {sessionId, sessionToken, liveUrl, frameWidth, frameHeight}) {
     state.sessionId = sessionId;
+    state.sessionToken = sessionToken;
     state.liveUrl = liveUrl;
     state.frameWidth = frameWidth;
     state.frameHeight = frameHeight;
