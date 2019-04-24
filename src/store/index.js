@@ -5,6 +5,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import kaptivo from './modules/kaptivo.js'
 import userinterface from './modules/userinterface.js'
+import zoom from './modules/zoom.js'
 
 Vue.use(Vuex)
 
@@ -14,6 +15,7 @@ export default new Vuex.Store({
   modules: {
     kaptivo,
     userinterface,
+    zoom,
   },
   strict: debug,
 })
