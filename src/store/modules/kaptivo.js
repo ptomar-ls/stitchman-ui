@@ -74,9 +74,30 @@ const actions = {
   /**
    *  Setup/Clear Pairing relationship to a Kaptivo
    */
-  async clearRoomPairing ({state, commit}) {
-    console.log('clearRoomPairing is called');
-    commit('setPairing', {kaptivoId: state.kaptivoId, pairingToken: ''});
+  async clearRoomPairing ({state, dispatch, commit}) {
+    dispatch('stopWatchingKaptivo');
+    if (state.pairingToken) {
+      try {
+        let kap = await getKaptivo();
+        let accessToken = await kap.authorize({scope: 'pair', pairing_token: state.pairingToken});
+        let path = '/api/v2/admin/pairing/instances';
+        let pairings = (await kap.apiGet({path, accessToken})).result;
+        for (let p of pairings) {
+          if (p.pairing_type === 'room' && p.paired_identity === g_systemId) {
+            await kap.apiDelete({accessToken, path: '/api/v2/admin/pairing/instances/' + p.id});
+          }
+        }
+      } catch (err) {
+        console.log(err.user_message || err.toString());
+        if (err.user_message) {
+          throw new Error(err.user_message);
+        } else {
+          throw err;
+        }
+      } finally {
+        commit('setPairing', {kaptivoId: state.kaptivoId, pairingToken: ''});
+      }
+    }
   },
   async setupRoomPairing ({state, commit}, {kaptivoId, admin_name, admin_password}) {
     try {
@@ -85,15 +106,42 @@ const actions = {
       let accessToken = null;
       if (admin_name && admin_password) {
         accessToken = await kap.authorize({scope: 'remote_config', admin_name, admin_password});
+      } else {
+        accessToken = await kap.authorize({scope: 'pair'});
       }
 
       let pairing_description = 'Kaptivo Manager';
-      let pairingToken = await kap.postRoomPairing({accessToken, paired_identity: g_systemId, pairing_description, override:true});
+      let paired_identity = g_systemId;
 
+      let pairingToken = null;
+      let path = '/api/v2/admin/pairing/instances';
+      let body = {
+        pairing_type: 'room',
+        enabled: true,
+        paired_identity,
+        pairing_description,
+      };
+      try {
+        pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
+      } catch (err) {
+        if (err.response && err.response.data && err.response.data.code === 'pair_instance_limit_reached') {
+          //! Delete existing 'room' pairing
+          path = '/api/v2/admin/pairing/instances';
+          let pairings = (await kap.apiGet({path, accessToken})).result;
+          for (let p of pairings) {
+            if (p.pairing_type === 'room') {
+              await kap.apiDelete({accessToken, path: '/api/v2/admin/pairing/instances/' + p.id});
+            }
+          }
+          //! ...and retry
+          pairingToken = (await this.apiPost({path, accessToken, body})).result.pairing_token;
+        } else {
+          throw err;
+        }
+      }
       commit('setPairing', {kaptivoId, pairingToken});
       return pairingToken;
     } catch (err) {
-      // console.log(JSON.stringify(err));
       if (err.user_message) {
         throw new Error(err.user_message);
       } else {
@@ -138,7 +186,6 @@ const actions = {
               }
               commit('setSessionStatus', {sessionId, sessionToken, liveUrl, frameWidth, frameHeight});
             } catch (e) {
-              console.log('Session has been ended');
               commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
             }
           }
@@ -205,7 +252,6 @@ const actions = {
 // mutations
 const mutations = {
   setPairing(state, {kaptivoId, pairingToken}) {
-    console.log('setPairing is called');
     state.kaptivoId = kaptivoId;
     state.pairingToken = pairingToken;
     localStorage.setItem(KAPTIVO_ID_KEY, kaptivoId);
