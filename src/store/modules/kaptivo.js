@@ -110,33 +110,32 @@ const actions = {
       if (!g_watchingKaptivo && state.pairingToken) {
         g_watchingKaptivo = true;
         let kap = await getKaptivo();
-        let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
         while (g_watchingKaptivo) {
-          let path = '/api/v2/peripheral/controlpad';
-          let controlPadStatus = (await kap.apiGet({path, accessToken})).result;
+          let path = `/api/v2/paired_service/controlpad?pairing_token=${state.pairingToken}`;
+          let controlPadStatus = (await kap.apiGet({path})).result;
           if (JSON.stringify(state.controlPadStatus) !== JSON.stringify(controlPadStatus)) {
             commit('setControlPadStatus', controlPadStatus);
           }
 
-          path = '/api/v2/observe';
+          path = `/api/v2/paired_service/observe?pairing_token=${state.pairingToken}`;
           let observedStatus = (await kap.apiGet({path})).result;
           if (state.sessionId !== observedStatus.session_id) {
             try {
-            let sessionId = observedStatus.session_id;
+              let sessionId = observedStatus.session_id;
               let sessionToken = '';
-            let liveUrl = '';
-            let frameWidth = 0;
-            let frameHeight = 0;
-            if (sessionId) {
+              let liveUrl = '';
+              let frameWidth = 0;
+              let frameHeight = 0;
+              if (sessionId) {
                 sessionToken = observedStatus.token;
-              path = `/api/v2/sessions/${sessionId}/content/liveview`;
-              let sessionInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
-              liveUrl = sessionInfo.websocket_rle_uri;
-              path = `/api/v2/sessions/${sessionId}/content`;
-              let contentInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
-              frameWidth = contentInfo.pixel_width;
-              frameHeight = contentInfo.pixel_height;
-            }
+                path = `/api/v2/sessions/${sessionId}/content/liveview`;
+                let sessionInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
+                liveUrl = sessionInfo.websocket_rle_uri;
+                path = `/api/v2/sessions/${sessionId}/content`;
+                let contentInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
+                frameWidth = contentInfo.pixel_width;
+                frameHeight = contentInfo.pixel_height;
+              }
               commit('setSessionStatus', {sessionId, sessionToken, liveUrl, frameWidth, frameHeight});
             } catch (e) {
               console.log('Session has been ended');
@@ -168,11 +167,10 @@ const actions = {
   async pushControlPadButton ({state, commit}) {
     try {
       let kap = await getKaptivo();
-      let accessToken = await kap.authorize({scope: 'controlpad', pairing_token: state.pairingToken});
-      let path = '/api/v2/peripheral/controlpad/input';
-      let body = { trigger: 'toggle_camera_enable' };
-      g_watchBoostCount = 10;
-      await kap.apiPut({path, accessToken, body});
+      let path = '/api/v2/paired_service/controlpad/input';
+      let body = { trigger: 'toggle_camera_enable', pairing_token: state.pairingToken };
+      g_watchBoostCount = 10; //! Make cp button status polling interval shorter to pick up the status change quickly
+      await kap.apiPut({path, body});
     } catch (err) {
       console.log(err.user_message || err.toString());
       if (err.user_message) {
