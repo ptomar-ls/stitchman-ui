@@ -433,14 +433,14 @@ class NodeKaptivo {
    * @param {string} param.accessToken (Optional) access token
    * @return {Promise<Object>} a promise that resolves the API response JSON object
    */
-  async apiGet({path, accessToken}) {
+  async apiGet({path, accessToken, timeout=30000}) {
     await this._chooseApiOrigin();
     let url = this[PRIVATE].apiOrigin + path;
     if (accessToken) {
       url +=  queryString({ bearer_token: accessToken });
     }
     logRequest({method: 'GET', url});
-    let ret = await axios.get(url);
+    let ret = await axios.get(url, {timeout});
     logResult(ret);
     return ret.data;
   }
@@ -453,14 +453,14 @@ class NodeKaptivo {
    * @param {Object} param.body API dependent JSON object to be sent in HTTP message body
    * @return {Promise<Object>} a promise that resolves the API response JSON object
    */
-  async apiPost({path, accessToken, body}) {
+  async apiPost({path, accessToken, body, timeout=30000}) {
     await this._chooseApiOrigin();
     let url = this[PRIVATE].apiOrigin + path;
     if (accessToken) {
       url +=  queryString({ bearer_token: accessToken });
     }
     logRequest({method: 'POST', url, body});
-    let ret = await axios.post(url, body);
+    let ret = await axios.post(url, body, {timeout});
     logResult(ret);
     return ret.data;
   }
@@ -473,14 +473,14 @@ class NodeKaptivo {
    * @param {Object} param.body API dependent JSON object to be sent in HTTP message body
    * @return {Promise<Object>} a promise that resolves the API response JSON object
    */
-  async apiPatch({path, accessToken, body}) {
+  async apiPatch({path, accessToken, body, timeout=30000}) {
     await this._chooseApiOrigin();
     let url = this[PRIVATE].apiOrigin + path;
     if (accessToken) {
       url +=  queryString({ bearer_token: accessToken });
     }
     logRequest({method: 'PATCH', url, body});
-    let ret = await axios.patch(url, body);
+    let ret = await axios.patch(url, body, {timeout});
     logResult(ret);
     return ret.data;
   }
@@ -493,14 +493,14 @@ class NodeKaptivo {
    * @param {Object} param.body API dependent JSON object to be sent in HTTP message body
    * @return {Promise<Object>} a promise that resolves the API response JSON object
    */
-  async apiPut({path, accessToken, body}) {
+  async apiPut({path, accessToken, body, timeout=30000}) {
     await this._chooseApiOrigin();
     let url = this[PRIVATE].apiOrigin + path;
     if (accessToken) {
       url +=  queryString({ bearer_token: accessToken });
     }
     logRequest({method: 'PUT', url, body});
-    let ret = await axios.put(url, body);
+    let ret = await axios.put(url, body, {timeout});
     logResult(ret);
     return ret.data;
   }
@@ -512,14 +512,14 @@ class NodeKaptivo {
    * @param {string} param.accessToken (Optional) access token
    * @return {Promise<Object>} a promise that resolves the API response JSON object
    */
-  async apiDelete({path, accessToken}) {
+  async apiDelete({path, accessToken, timeout=30000}) {
     await this._chooseApiOrigin();
     let url = this[PRIVATE].apiOrigin + path;
     if (accessToken) {
       url +=  queryString({ bearer_token: accessToken });
     }
     logRequest({method: 'DELETE', url});
-    let ret = await axios.delete(url);
+    let ret = await axios.delete(url, {timeout});
     logResult(ret);
     return ret.data;
   }
@@ -708,7 +708,7 @@ class NodeKaptivo {
           };
           let url = this[PRIVATE].apiOrigin + '/api/discovery/location' + queryString(params);
           logRequest({method: 'GET', url});
-          let ret = await axios.get(url);
+          let ret = await axios.get(url, {timeout: 5000});
           logResult(ret);
           let locations = ret.data.result;
           log(locations);
@@ -718,8 +718,9 @@ class NodeKaptivo {
           if (this[PRIVATE].ip) {
             this._setApiOriginFromIp(); //! try direct API origin
             try {
-              await this.ping();
+              await axios.get(this[PRIVATE].apiOrigin + '/api/discovery/ping', {timeout: 1000});
             } catch (err) {
+              console.log('No direct IP access. Fall back to relay origin.');
               this._setRelayApiOrigin(); //! if ip is not reachable, keep using relay API origin
             }
           }
