@@ -6,7 +6,7 @@
         <form>
           <div class="formrow">
             <div class="itemlabel">Kaptivo ID</div>
-            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoId"></div>
+            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoId" placeholder="(Required)"></div>
           </div>
           <div class="formrow">
             <div class="itemlabel">Kaptivo admin name</div>
