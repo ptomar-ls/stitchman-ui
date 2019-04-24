@@ -36,7 +36,7 @@ async function getKaptivo(kaptivoId) {
 
   if (!kap) {
     try {
-      kap = new nodeKaptivo.NodeKaptivo({kaptivoId});
+      kap = new nodeKaptivo.NodeKaptivo({kaptivoId, ssl: true});
       await kap.ping();
     } catch (e) {
       throw new Error('Kaptivo not accessible')
