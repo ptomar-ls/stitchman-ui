@@ -7,7 +7,7 @@
 <script>
 
 import { mapGetters, mapActions } from 'vuex'
-import {KLiveViewer} from '@lightblue/remote-frame-buffer';
+import {KLiveViewer} from '../@lightblue/remote-frame-buffer/index.js';
 
 export default {
   mounted () {
