@@ -26,6 +26,12 @@
         <control-pad></control-pad>
       </div>
     </div>
+    <ul id="pdflinkbox">
+      <li v-for="pdfUrl in pdfLinks" :key="pdfUrl">
+        <a :href="pdfUrl" target="_blank">{{pdfUrl}}</a>
+      </li>
+    </ul>
+
   </div>
 </template>
 
@@ -48,6 +54,7 @@
         'sessionId',
         'zoomSessionRunning',
         'zoomSharingPc',
+        'pdfLinks',
       ]),
     },
     watch: {
@@ -81,7 +88,7 @@
 
   #roomdisplay {
     padding: 10px;
-    margin: 0 auto 60px;
+    margin: 0 auto 40px;
     width: 240px;
     height: 160px;
     background-color: black;
@@ -95,7 +102,7 @@
     margin: 0 auto;
     padding: 10px;
     width: 640px;
-    height: 300px;
+    height: 200px;
     background: linear-gradient(rgb(10, 20, 40), rgb(66, 96, 154));
   }
 
@@ -167,5 +174,13 @@
   .sessioninfo {
     margin: 20px auto;
     padding: 20px;
+  }
+
+  #pdflinkbox {
+    height: 80px;
+    margin: 30px 40px 10px 40px;
+    border: 1px solid black;
+    padding: 10px;
+    overflow-y: auto;
   }
 </style>

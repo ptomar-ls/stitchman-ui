@@ -15,6 +15,10 @@ const getters = {
 // actions
 const actions = {
   async startZoomMeeting ({getters, commit, dispatch}) {
+    //! this sample has an issue that the PDF for the ongoing session is put in the pdf list.
+    //! I believe it is fairly easy to avoid the issue in the production.
+    dispatch('clearPdfLinks');
+
     if (getters.sessionId) {
       dispatch('setMessage', {message: 'Stop Kaptivo session when starting a Zoom session.', timeout: 3000});
       dispatch('endKaptivoSession');

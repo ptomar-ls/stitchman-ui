@@ -1,6 +1,7 @@
 
 /* eslint-disable no-unused-vars */
 
+const jwtDecode = require('jwt-decode');  //! to get pairing_id from pairing_token
 const nodeKaptivo = require('../../@lightblue/node-kaptivo/index.js');
 
 const KAPTIVO_ID_KEY = '__KAPTIVO_ID__';
@@ -21,6 +22,8 @@ nodeKaptivo.setGlobalClientToken(debug ? DEV_CLIENT_TOKEN : PROD_CLIENT_TOKEN);
 nodeKaptivo.setVerbose(false);
 
 let g_kapCache = {};
+
+//! Kaptivo identifies the paired system using 'paired_identity' value. Use a UUID in this sample. Please assign a unique ID.
 let g_systemId = localStorage.getItem(SYSTEMID_KEY);
 if (!g_systemId) {
   g_systemId = require('uuid/v4')();
@@ -28,6 +31,7 @@ if (!g_systemId) {
 }
 let g_watchingKaptivo = false;
 let g_watchBoostCount = 0;
+let g_endedSessions = []; //! array to keep { sessionId, sessionToken } pairs. we get PDFs of those.
 
 
 async function getKaptivo(kaptivoId) {
@@ -47,6 +51,37 @@ async function getKaptivo(kaptivoId) {
   return kap;
 }
 
+async function getPdf(kap, {sessionId, sessionToken}) {
+  let path = `/api/v2/sessions/${sessionId}/minutes`;
+  let body = {};
+  let jobId = (await kap.apiPost({path, body, accessToken: sessionToken})).result.id;
+  path = `/api/v2/sessions/${sessionId}/minutes/${jobId}`;
+  let link = '';
+  let done = false;
+  while (!done) { //! Keep waiting until the job succeeds or fails
+    let jobStatus = (await kap.apiGet({path, accessToken: sessionToken})).result;
+    switch (jobStatus.status) {
+    case "preparing":
+    case "in_progress":      //! Still doing something
+      await sleep(1000);
+      break;
+    case "complete":         //! Completed successfully
+      link = jobStatus.output_uri;
+      done = true;
+      break;
+    case "cancelled":        //! the user can 'cancel' the pdf generation by deleting the job
+    case "nothing_done":     //! when there is no timeline saved, this can happen
+      done = true;
+      break;
+    case "failed":           //! network error
+      throw new Error(jobStatus.message);
+    default:                 //! this should never happen
+      throw new Error('Unknown error');
+    }
+  }
+  return link;
+}
+
 // initial state
 const state = {
   kaptivoId: localStorage.getItem(KAPTIVO_ID_KEY) || '',
@@ -57,6 +92,7 @@ const state = {
   liveUrl: '',
   frameWidth: 0,
   frameHeight: 0,
+  pdfLinks: [],
 }
 
 // getters
@@ -66,6 +102,7 @@ const getters = {
   controlPadStatus: state => state.controlPadStatus,
   sessionId: state => state.sessionId,
   liveUrl: state => state.liveUrl,
+  pdfLinks: state => state.pdfLinks,
 }
 
 // actions
@@ -80,15 +117,15 @@ const actions = {
       try {
         let kap = await getKaptivo();
         let accessToken = await kap.authorize({scope: 'pair', pairing_token: state.pairingToken});
-        let path = '/api/v2/admin/pairing/instances';
-        let pairings = (await kap.apiGet({path, accessToken})).result;
-        for (let p of pairings) {
-          if (p.pairing_type === 'room' && p.paired_identity === g_systemId) {
-            await kap.apiDelete({accessToken, path: '/api/v2/admin/pairing/instances/' + p.id});
-          }
-        }
+        let pairing_id = jwtDecode(state.pairingToken).pairing_id;
+        let path = '/api/v2/admin/pairing/instances/' + pairing_id;
+        await kap.apiDelete({ path, accessToken });
       } catch (err) {
         console.log(err.user_message || err.toString());
+        if (err.code === 'auth_invalid_pairingid') {
+          console.log('the pairing has been already deleted from Kaptivo.');
+        }
+        //! If it is a network error, it is better to keep the pairing token and retry later.
         if (err.user_message) {
           throw new Error(err.user_message);
         } else {
@@ -153,7 +190,7 @@ const actions = {
   /**
    *  Control Pad Mirroring
    */
-  async startWatchingKaptivo ({state, commit}) {
+  async startWatchingKaptivo ({state, dispatch, commit}) {
     try {
       if (!g_watchingKaptivo && state.pairingToken) {
         g_watchingKaptivo = true;
@@ -193,6 +230,13 @@ const actions = {
             await sleep(200);
             --g_watchBoostCount;
           } else {
+            //      g_endedSessions.push({sessionId: state.sessionId, sessionToken: state.sessionToken});
+            if (0 < g_endedSessions.length) {
+              //! process the first sessionId, sessionToken pair asynchronously
+              getPdf(kap, g_endedSessions.shift())
+                .then(pdfLink => commit('addPdfLink', pdfLink))
+                .catch( err => dispatch('setMessage', {message: err.toString(), timeout: 10000}));
+            }
             await sleep(1000);
           }
         }
@@ -233,7 +277,8 @@ const actions = {
         let kap = await getKaptivo();
         let accessToken = state.sessionToken;
         let path = `/api/v2/sessions/${state.sessionId}`;
-        await kap.apiDelete({path, accessToken});
+        let body = { action: 'end' };
+        await kap.apiPatch({path, body, accessToken});
         commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
       } catch (err) {
         console.log(err.user_message || err.toString());
@@ -245,7 +290,9 @@ const actions = {
       }
     }
   },
-
+  async clearPdfLinks ({commit}) {
+    commit('clearPdfLinks');
+  },
 
 }
 
@@ -264,11 +311,22 @@ const mutations = {
     state.controlPadStatus = controlPadStatus;
   },
   setSessionStatus(state, {sessionId, sessionToken, liveUrl, frameWidth, frameHeight}) {
+    if (state.sessionId && state.sessionToken && state.sessionId != sessionId) {
+      //! the session has ended. Put the id and the token in the queue. (We need sessionId, sessionToken pair to get PDF)
+      g_endedSessions.push({sessionId: state.sessionId, sessionToken: state.sessionToken});
+    }
+
     state.sessionId = sessionId;
     state.sessionToken = sessionToken;
     state.liveUrl = liveUrl;
     state.frameWidth = frameWidth;
     state.frameHeight = frameHeight;
+  },
+  addPdfLink(state, link) {
+    state.pdfLinks.push(link);
+  },
+  clearPdfLinks(state) {
+    state.pdfLinks.length = 0;
   },
 }
 
