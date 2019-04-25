@@ -1,4 +1,4 @@
-# kapman
+# ZoomRooms-Kaptico integration mockup
 
 ## Project setup
 ```
@@ -15,15 +15,11 @@ npm run serve
 npm run build
 ```
 
-### Run your tests
-```
-npm run test
-```
+### See following files
+- src/store/modules/kaptivo.js    Kaptivo related backend logic
+- src/store/modules/zoom.js       Dummy ZoomRooms backend logic
+- src/components/ControlPad.vue   ControlPad mirror component
+- src/@lightblue/node-kaptivo     Generic Kaptivo API wrapper library
 
-### Lints and fixes files
-```
-npm run lint
-```
+NOTE: node-kaptivo includes many things that you do not have to care.
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
