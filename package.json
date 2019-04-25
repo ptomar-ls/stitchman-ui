@@ -8,7 +8,6 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "@lightblue/remote-frame-buffer": "^1.2.0",
     "axios": "^0.18.0",
     "core-js": "^2.6.5",
     "jwt-decode": "^2.2.0",
