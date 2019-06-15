@@ -1,24 +1,65 @@
 <template>
   <div class="pair">
-    <h1>Pair with your Kaptivo</h1>
+    <h1>Pair with your Kaptivos and KaptivoCast</h1>
     <div class="container">
-      <div class="form">
-        <form>
-          <div class="formrow">
-            <div class="itemlabel">Kaptivo ID</div>
-            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoId" placeholder="(Required)"></div>
+
+      <div class="innercontainer">
+
+        <div class="kaptivocolumn">
+          <div class="form">
+            <form>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo ID</div>
+                <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoIds[0]" placeholder="(Required)"></div>
+              </div>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo admin name</div>
+                <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model="adminNames[0]" placeholder="(Optional)"></div>
+              </div>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo admin password</div>
+                <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[1]" placeholder="(Optional)"></div>
+              </div>
+              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo(0)">
+            </form>
           </div>
-          <div class="formrow">
-            <div class="itemlabel">Kaptivo admin name</div>
-            <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model="adminName" placeholder="(Optional)"></div>
+        </div>
+
+        <div class="kaptivocolumn">
+          <div class="form">
+            <form>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo ID</div>
+                <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="kaptivoIds[1]" placeholder="(Required)"></div>
+              </div>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo admin name</div>
+                <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model="adminNames[1]" placeholder="(Optional)"></div>
+              </div>
+              <div class="formrow">
+                <div class="itemlabel">Kaptivo admin password</div>
+                <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[1]" placeholder="(Optional)"></div>
+              </div>
+              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo(1)">
+            </form>
           </div>
-          <div class="formrow">
-            <div class="itemlabel">Kaptivo admin password</div>
-            <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPassword" placeholder="(Optional)"></div>
+        </div>
+
+        <div class="castcolumn">
+          <div class="form">
+            <form>
+              <div class="formrow">
+                <div class="itemlabel">KaptivoCast IP Address</div>
+                <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="castIp" placeholder="(Required)"></div>
+              </div>
+              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo">
+            </form>
           </div>
-          <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo">
-        </form>
+        </div>
       </div>
+
+
+
       <div id="kaptivo_auth">
       </div>
     </div>
@@ -40,19 +81,20 @@
     },
     data() {
       return {
-        kaptivoId: (this.$store.getters.kaptivoId || ''),
-        adminName: '',
-        adminPassword: '',
+        kaptivoIds: [ '', '' ],
+        adminNames: [ '', '' ],
+        adminPasswords: [ '', '' ],
+        castIp: '',
         pairingInProgress: false,
       };
     },
     computed: {
       pairEnabled () {
-        return (!this.pairingInProgress && this.kaptivoId.length === 6);
+        return (!this.pairingInProgress);
       },
     },
     methods: {
-      pairKaptivo() {
+      pairKaptivo(index) {
         if (!this.pairEnabled) return;
 
         this.pairingInProgress = true;
@@ -85,6 +127,34 @@
     justify-content: flex-start;
     align-items: center;
     /*background-color: lime;*/
+  }
+
+  .innercontainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .kaptivocolumn {
+    margin: 10px;
+    border: solid black 1px;
+    flex: 0 0  auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .castcolumn {
+    margin: 10px;
+    border: solid black 1px;
+    flex: 0 0  auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
   }
 
   .form {
