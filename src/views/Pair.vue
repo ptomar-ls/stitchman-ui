@@ -20,7 +20,7 @@
                 <div class="itemlabel">Kaptivo admin password</div>
                 <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[0]" placeholder="(Optional)"></div>
               </div>
-              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo(0)">
+              <input type="submit" :disabled='pairingInProgress || kaptivoIds[0].length < 6' class='button' value="Pair" @click="pairKaptivo(0)">
             </form>
           </div>
         </div>
@@ -40,7 +40,7 @@
                 <div class="itemlabel">Kaptivo admin password</div>
                 <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[1]" placeholder="(Optional)"></div>
               </div>
-              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo(1)">
+              <input type="submit" :disabled='pairingInProgress || kaptivoIds[1].length < 6' class='button' value="Pair" @click="pairKaptivo(1)">
             </form>
           </div>
         </div>
@@ -52,10 +52,14 @@
                 <div class="itemlabel">KaptivoCast IP Address</div>
                 <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="castIp" placeholder="(Required)"></div>
               </div>
-              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairCast">
+              <input type="submit" :disabled='pairingInProgress || castIp.length < 7' class='button' value="Pair" @click="pairCast">
             </form>
           </div>
         </div>
+      </div>
+
+      <div class="next_button">
+        <input type="button" :disabled='pairingInProgress || !readyToSetup' class='button' value="Setup" @click="setup()">
       </div>
 
       <div id="kaptivo_auth">
@@ -66,6 +70,8 @@
 
 <script>
   import { mapActions } from 'vuex'
+  const axios = require('axios');
+
   export default {
     mounted() {
     },
@@ -75,7 +81,7 @@
         if (val !== upperVal) {
           this.kaptivoId = upperVal;
         }
-      }
+      },
     },
     data() {
       return {
@@ -84,33 +90,64 @@
         adminPasswords: [ '', '' ],
         pairingTokens: [ '', '' ],
         castIp: '',
+        provenCastIp: '',
         pairingInProgress: false,
+        readyToSetup: false,
       };
     },
-    computed: {
-      pairEnabled () {
-        return (!this.pairingInProgress);
-      },
-    },
     methods: {
+      syncReadyToSetup () {
+        this.readyToSetup = !!(this.pairingTokens[0] && this.pairingTokens[1] && this.provenCastIp);
+      },
+
       pairKaptivo(index) {
-        if (!this.pairEnabled) return;
+        if (this.pairingInProgress) return;
 
         this.pairingInProgress = true;
-        this.setMessage({ message: `Pairing with ${this.kaptivoId} in progress...`, timeout: 5000});
+        this.setMessage({ message: `Pairing with ${this.kaptivoIds[index]} in progress...`, timeout: 5000});
         this.setupRoomPairing({kaptivoId: this.kaptivoIds[index], admin_name: this.adminNames[index], admin_password: this.adminPasswords[index]})
           .then(pairingToken => {
             this.setMessage({ message: 'Pairing done', timeout: 5000});
             this.pairingTokens[index] = pairingToken;
-            console.log('pairingToken = ' + pairingToken);
-          }) 
+          })
           .catch(err => { this.setMessage({ message: err.toString(), timeout: 5000}); })
-          .finally(() => { this.pairingInProgress = false });
+          .finally(() => {
+            this.pairingInProgress = false;
+            this.syncReadyToSetup();
+          });
       },
 
       pairCast () {
+        if (this.pairingInProgress) return;
+        this.pairingInProgress = true;
 
+        this.provenCastIp = '';
+        let castPingUrl = 'http://' + this.castIp + '/api/discovery/ping';
+        axios.get(castPingUrl, {timeout: 5000})
+          .then(ret => {
+            if (ret.data && ret.data.result) {
+              if (ret.data.result.model === 'KC100') {
+                //! Cast found on the given IP address
+                this.provenCastIp = this.castIp;
+                this.setMessage({ message: 'Pairing done', timeout: 5000});
+              } else {
+                this.setMessage({ message: `The device at ${this.castIp} is not a KaptivoCast.`, timeout: 5000});
+              }
+            }
+          })
+          .catch(err => {
+            this.setMessage({ message: `No response from ${this.castIp}.`, timeout: 5000});
+          })
+          .finally(() => {
+            this.pairingInProgress = false;
+            this.syncReadyToSetup();
+          });
       },
+
+      setup () {
+        console.log('SETUP is called!');
+      },
+
       ...mapActions([
         'setMessage',
         'setupRoomPairing',
