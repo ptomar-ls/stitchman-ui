@@ -110,7 +110,7 @@ const actions = {
         accessToken = await kap.authorize({scope: 'pair'});
       }
 
-      let pairing_description = 'Kaptivo Manager';
+      let pairing_description = 'Stitching Manager';
       let paired_identity = g_systemId;
 
       let pairingToken = null;
@@ -120,6 +120,7 @@ const actions = {
         enabled: true,
         paired_identity,
         pairing_description,
+        button_action: 'start_view_session',
       };
       try {
         pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
@@ -139,7 +140,6 @@ const actions = {
           throw err;
         }
       }
-      commit('setPairing', {kaptivoId, pairingToken});
       return pairingToken;
     } catch (err) {
       if (err.user_message) {

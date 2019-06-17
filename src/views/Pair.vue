@@ -18,7 +18,7 @@
               </div>
               <div class="formrow">
                 <div class="itemlabel">Kaptivo admin password</div>
-                <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[1]" placeholder="(Optional)"></div>
+                <div class="itemvalue"><input type="password" :disabled="pairingInProgress" v-model="adminPasswords[0]" placeholder="(Optional)"></div>
               </div>
               <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo(0)">
             </form>
@@ -52,13 +52,11 @@
                 <div class="itemlabel">KaptivoCast IP Address</div>
                 <div class="itemvalue"><input type="text" :disabled="pairingInProgress" v-model.trim="castIp" placeholder="(Required)"></div>
               </div>
-              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairKaptivo">
+              <input type="submit" :disabled='!pairEnabled' class='button' value="Pair" @click="pairCast">
             </form>
           </div>
         </div>
       </div>
-
-
 
       <div id="kaptivo_auth">
       </div>
@@ -84,6 +82,7 @@
         kaptivoIds: [ '', '' ],
         adminNames: [ '', '' ],
         adminPasswords: [ '', '' ],
+        pairingTokens: [ '', '' ],
         castIp: '',
         pairingInProgress: false,
       };
@@ -99,13 +98,18 @@
 
         this.pairingInProgress = true;
         this.setMessage({ message: `Pairing with ${this.kaptivoId} in progress...`, timeout: 5000});
-        this.setupRoomPairing({kaptivoId: this.kaptivoId, admin_name: this.adminName, admin_password: this.adminPassword})
-          .then(() => {
+        this.setupRoomPairing({kaptivoId: this.kaptivoIds[index], admin_name: this.adminNames[index], admin_password: this.adminPasswords[index]})
+          .then(pairingToken => {
             this.setMessage({ message: 'Pairing done', timeout: 5000});
-            setTimeout(() => { this.$router.push({name: 'home'}); }, 500)
-          })
+            this.pairingTokens[index] = pairingToken;
+            console.log('pairingToken = ' + pairingToken);
+          }) 
           .catch(err => { this.setMessage({ message: err.toString(), timeout: 5000}); })
           .finally(() => { this.pairingInProgress = false });
+      },
+
+      pairCast () {
+
       },
       ...mapActions([
         'setMessage',
