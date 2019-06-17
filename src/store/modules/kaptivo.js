@@ -1,7 +1,7 @@
 
 /* eslint-disable no-unused-vars */
 
-const nodeKaptivo = require('../../@lightblue/node-kaptivo/index.js');
+const nodeKaptivo = require('@lightblue/node-kaptivo');
 
 const KAPTIVO_ID_KEY = '__KAPTIVO_ID__';
 const PAIRING_TOKEN_KEY = '__PAIRING_TOKEN__';
