@@ -97,7 +97,7 @@
     },
     methods: {
       syncReadyToSetup () {
-        this.readyToSetup = !!(this.pairingTokens[0] && this.pairingTokens[1] && this.provenCastIp);
+        this.readyToSetup = !!(this.kaptivoIds[0] !== this.kaptivoIds[1] && this.pairingTokens[0] && this.pairingTokens[1] && this.provenCastIp);
       },
 
       pairKaptivo(index) {
