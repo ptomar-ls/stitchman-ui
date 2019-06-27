@@ -147,6 +147,20 @@
 
       setup () {
         console.log('SETUP is called!');
+        let params = {
+          kaptivos: [
+            {
+              id: this.kaptivoIds[0],
+              pairingToken: this.pairingTokens[0],
+            },
+            {
+              id: this.kaptivoIds[1],
+              pairingToken: this.pairingTokens[1],
+            }
+          ],
+          castIp: this.castIp,
+        };
+        axios.patch('http://localhost/settings', params);
       },
 
       ...mapActions([
