@@ -136,6 +136,7 @@
             }
           })
           .catch(err => {
+            console.log(err);
             this.setMessage({ message: `No response from ${this.castIp}.`, timeout: 5000});
           })
           .finally(() => {
