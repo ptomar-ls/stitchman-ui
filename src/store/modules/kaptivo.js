@@ -99,15 +99,15 @@ const actions = {
       }
     }
   },
-  async setupRoomPairing ({state, commit}, {kaptivoId, admin_name, admin_password}) {
+  async setupRoomPairing ({state, commit}, {kaptivoId, admin_name, admin_password, el}) {
     try {
       let kap = await getKaptivo(kaptivoId);
 
       let accessToken = null;
       if (admin_name && admin_password) {
-        accessToken = await kap.authorize({scope: 'remote_config', admin_name, admin_password});
+        accessToken = await kap.authorize({scope: 'remote_config', admin_name, admin_password, iframe_parent:el});
       } else {
-        accessToken = await kap.authorize({scope: 'pair'});
+        accessToken = await kap.authorize({scope: 'pair', iframe_parent:el});
       }
 
       let pairing_description = 'Stitching Manager';
@@ -125,7 +125,9 @@ const actions = {
       try {
         pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
       } catch (err) {
+        console.log('zz: failed');
         if (err.response && err.response.data && err.response.data.code === 'pair_instance_limit_reached') {
+          console.log('zz: delete pairings');
           //! Delete existing 'room' pairing
           path = '/api/v2/admin/pairing/instances';
           let pairings = (await kap.apiGet({path, accessToken})).result;
@@ -135,6 +137,7 @@ const actions = {
             }
           }
           //! ...and retry
+          console.log('zz: retry');
           pairingToken = (await this.apiPost({path, accessToken, body})).result.pairing_token;
         } else {
           throw err;

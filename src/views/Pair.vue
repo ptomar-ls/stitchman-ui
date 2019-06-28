@@ -5,7 +5,7 @@
 
       <div class="innercontainer">
 
-        <div class="kaptivocolumn">
+        <div class="kaptivocolumn" :class="{auth:pairingInProgress, paired:pairingTokens[0]!==''}">
           <div class="form">
             <form>
               <div class="formrow">
@@ -23,9 +23,10 @@
               <input type="submit" :disabled='pairingInProgress || kaptivoIds[0].length < 6' class='button' value="Pair" @click="pairKaptivo(0)">
             </form>
           </div>
+          <div class="authbox" ref="auth0"></div>
         </div>
 
-        <div class="kaptivocolumn">
+        <div class="kaptivocolumn"  :class="{auth:pairingInProgress, paired:pairingTokens[0]!==''}">
           <div class="form">
             <form>
               <div class="formrow">
@@ -43,9 +44,10 @@
               <input type="submit" :disabled='pairingInProgress || kaptivoIds[1].length < 6' class='button' value="Pair" @click="pairKaptivo(1)">
             </form>
           </div>
+          <div class="authbox" ref="auth1"></div>
         </div>
 
-        <div class="castcolumn">
+        <div class="castcolumn" :class="{paired:provenCastIp!==''}">
           <div class="form">
             <form>
               <div class="formrow">
@@ -59,7 +61,8 @@
       </div>
 
       <div class="next_button">
-        <input type="button" :disabled='pairingInProgress || !readyToSetup' class='button' value="Setup" @click="setup()">
+        <input type="button" :disabled='pairingInProgress || readyToSetup' class='button' value="Pair All" @click="pairAll()">
+        <input type="button" :disabled='pairingInProgress || !readyToSetup' class='button' value="Next" @click="setup()">
       </div>
 
       <div id="kaptivo_auth">
@@ -105,7 +108,7 @@
 
         this.pairingInProgress = true;
         this.setMessage({ message: `Pairing with ${this.kaptivoIds[index]} in progress...`, timeout: 5000});
-        this.setupRoomPairing({kaptivoId: this.kaptivoIds[index], admin_name: this.adminNames[index], admin_password: this.adminPasswords[index]})
+        this.setupRoomPairing({kaptivoId: this.kaptivoIds[index], admin_name: this.adminNames[index], admin_password: this.adminPasswords[index], el:[this.$refs.auth0,this.$refs.auth1][index]})
           .then(pairingToken => {
             this.setMessage({ message: 'Pairing done', timeout: 5000});
             this.pairingTokens[index] = pairingToken;
@@ -115,6 +118,40 @@
             this.pairingInProgress = false;
             this.syncReadyToSetup();
           });
+      },
+
+      pairAll(){
+        if (this.pairingInProgress) return;
+        this.pairingInProgress = true;
+        this.setMessage({ message: `All Pairings in progress...`, timeout: 5000});
+        const proms=[];
+        for (let n=0;n<2;n++){
+          if (this.pairingTokens[n] || this.kaptivoIds[n].length!==6) continue;
+          proms.push(this.setupRoomPairing({kaptivoId: this.kaptivoIds[n], admin_name: this.adminNames[n], admin_password: this.adminPasswords[n], el:this.$refs['auth'+n]})
+            .then(pairingToken => {
+              this.setMessage({ message: this.kaptivoIds[n]+' paired', timeout: 5000});
+              this.pairingTokens[n] = pairingToken;
+            }));
+        }
+        if (this.castIp && !this.provenCastIp){
+          let castPingUrl = 'http://' + this.castIp + '/api/discovery/ping';
+          proms.push(axios.get(castPingUrl, {timeout: 5000})
+            .then(ret => {
+              if (ret.data && ret.data.result) {
+                if (ret.data.result.model === 'KC100') {
+                  //! Cast found on the given IP address
+                  this.provenCastIp = this.castIp;
+                  this.setMessage({ message: 'cast paired', timeout: 5000});
+                } else {
+                  this.setMessage({ message: `The device at ${this.castIp} is not a KaptivoCast.`, timeout: 5000});
+                }
+              }
+            }))
+        }
+        Promise.all(proms).catch(err => { this.setMessage({ message: err.toString(), timeout: 5000}); }).finally(() => {
+          this.pairingInProgress = false;
+          this.syncReadyToSetup();
+        })
       },
 
       pairCast () {
@@ -200,6 +237,15 @@
     flex-wrap: nowrap;
     justify-content: flex-start;
     align-items: center;
+    position:relative;
+  }
+  .paired::after{
+    content:"\2713";
+    position:absolute;
+    color:green;
+    right:8px;
+    bottom:0;
+    font-size:64px;
   }
 
   .castcolumn {
@@ -211,6 +257,7 @@
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
+    position:relative;
   }
 
   .form {
@@ -218,6 +265,17 @@
     /*background-color: yellow;*/
     width: 100%;
     flex: 0 0 auto;
+  }
+  .auth .form{
+    display:none;
+  }
+  .authbox{
+    width:427px;
+    height:265px;
+    display:none;
+  }
+  .auth .authbox{
+    display:block;
   }
 
   .formrow {
