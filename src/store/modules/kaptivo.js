@@ -1,13 +1,10 @@
-
+import axios from 'axios';
 /* eslint-disable no-unused-vars */
 
 const nodeKaptivo = require('@lightblue/node-kaptivo');
 
-const KAPTIVO_ID_KEY = '__KAPTIVO_ID__';
-const PAIRING_TOKEN_KEY = '__PAIRING_TOKEN__';
+const debug = process.env.NODE_ENV !== 'production';
 const SYSTEMID_KEY = '__SYSTEM_ID__';
-
-const debug = process.env.NODE_ENV !== 'production'
 
 //! Dev mode client token
 const DEV_CLIENT_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJjbGllbnQiOnsibmFtZSI6IkthcHRpdm8gTWFuYWdlciBEZXYgbW9kZSIsInJlZGlyZWN0X3VyaSI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4Mi9pbmRleC5odG1sIiwic2NvcGUiOlsiY2FwdHVyZSIsImxvY2FsX2NhcHR1cmUiLCJwYWlyIiwiZGlzY292ZXIiLCJyZW1vdGVfY29uZmlnIiwidmlldyIsImxvY2FsX3ZpZXciLCJtb25pdG9yIiwiY29udHJvbHBhZCJdfSwiaWF0IjoxNTIwODUyMzE1LCJpc3MiOiJrYXBwXzEifQ.cGBpxUCLnIQVnRo3EN0TQH_MhcSIsPoRdSYMDzmFZZJMYSVWEH-4dSsit581n-wDLPKi4uIU-Mhx6ssKuXaDhkJNfGOBf3KeHHsaxvHdV6LFY1R_tbyaz98Qg1cQwr1zKq6wTiqklXxqxX5zPhW9vUNPVCXfUbCjyNGAlxEGba5qPx8uWdhkf4_4w8JVnPPzEq9NJYgLFHObx0SJcyZRSoaV1A3RxHd9_ce2GxhTrdCANceSjx0q4ilUqp4DHwlfSuE5bo6KYivxmMzwanTrIRZ8U2f3AHBdjkOnhG1yQytaBgEXX4py6hsltRoTlelMEAGqnuTu7g-ufG_5HPgfVA';
@@ -26,8 +23,6 @@ if (!g_systemId) {
   g_systemId = require('uuid/v4')();
   localStorage.setItem(SYSTEMID_KEY, g_systemId);
 }
-let g_watchingKaptivo = false;
-let g_watchBoostCount = 0;
 
 
 async function getKaptivo(kaptivoId) {
@@ -43,242 +38,300 @@ async function getKaptivo(kaptivoId) {
     }
     g_kapCache[kaptivoId] = kap;
   }
-
   return kap;
 }
 
 // initial state
 const state = {
-  kaptivoId: localStorage.getItem(KAPTIVO_ID_KEY) || '',
-  pairingToken: localStorage.getItem(PAIRING_TOKEN_KEY) || '',
-  controlPadStatus: {},
-  sessionId: 0,
-  sessionToken: '',
-  liveUrl: '',
-  frameWidth: 0,
-  frameHeight: 0,
-}
+  kaptivos:[
+    {
+      id:"",
+      pairingToken:"",
+    },
+    {
+      id:"",
+      pairingToken:"",
+    },
+  ],
+  castIp:'',
+  castProven:false,
+  uiState:null,
+  castIpValid:false,
+  setupLive:[],
+  setupImages:[],
+  setupCorners:[],
+  setupStitched:[],
+  adminNames:["",""],
+  adminPasswords:["",""],
+  pairInProgress:false,
+  stitchmanState:'',
+  busy:0,
+};
 
 // getters
 const getters = {
-  kaptivoId: state => state.kaptivoId,
-  isPaired: state => !!(state.kaptivoId && state.pairingToken),
-  controlPadStatus: state => state.controlPadStatus,
-  sessionId: state => state.sessionId,
-  liveUrl: state => state.liveUrl,
+  kaptivos: state => state.kaptivos,
+  castIp: state => state.castIp,
+  adminNames: state => state.adminNames,
+  adminPasswords: state => state.adminPasswords,
+  allPaired: state => state.castIpValid && state.kaptivos.every(k=>k.pairingToken),
+  pairInProgress: state => state.pairInProgress,
+  castProven: state=>state.castProven,
+  castIpValid: state=>state.castIpValid,
+  uiState: state=>state.uiState,
+  setupLive: state=>state.setupLive,
+  setupCorners: state=>state.setupCorners,
+  setupImages: state=>state.setupImages,
+  setupStitched: state=>state.setupStitched,
+  stitchmanState: state=>state.stitchmanState,
+  busy: state=>state.busy,
+};
+
+function wrapActions(actions){
+  for (let key of Object.keys(actions)){
+    if (/^refresh/.test(key)) continue;
+    const fn=actions[key];
+    actions[key] = async (store, params)=>{
+      try{
+        store.commit('incBusy');
+        return await fn(store,params);
+      } finally {
+        store.commit('decBusy');
+      }
+    }
+  }
+  return actions;
 }
 
 // actions
-const actions = {
-
-  /**
-   *  Setup/Clear Pairing relationship to a Kaptivo
-   */
-  async clearRoomPairing ({state, dispatch, commit}) {
-    dispatch('stopWatchingKaptivo');
-    if (state.pairingToken) {
-      try {
-        let kap = await getKaptivo();
-        let accessToken = await kap.authorize({scope: 'pair', pairing_token: state.pairingToken});
-        let path = '/api/v2/admin/pairing/instances';
-        let pairings = (await kap.apiGet({path, accessToken})).result;
-        for (let p of pairings) {
-          if (p.pairing_type === 'room' && p.paired_identity === g_systemId) {
-            await kap.apiDelete({accessToken, path: '/api/v2/admin/pairing/instances/' + p.id});
-          }
-        }
-      } catch (err) {
-        console.log(err.user_message || err.toString());
-        if (err.user_message) {
-          throw new Error(err.user_message);
-        } else {
-          throw err;
-        }
-      } finally {
-        commit('setPairing', {kaptivoId: state.kaptivoId, pairingToken: ''});
+const actions = wrapActions({
+  async init({commit,dispatch}){
+    const rslt = await axios.get('http://localhost/settings');
+    if (rslt && rslt.data){
+      commit('setCastIp',rslt.data.castIp || "");
+      if (rslt.data.kaptivos && rslt.data.kaptivos.length===2) commit('setKaptivos',rslt.data.kaptivos);
+      if (rslt.data.castIp){
+        await dispatch('testCast').catch(()=>{});
       }
     }
+    await dispatch('refreshUiState');
   },
-  async setupRoomPairing ({state, commit}, {kaptivoId, admin_name, admin_password, el}) {
+  async getCorners({commit}){
+    const corners = (await axios('http://localhost/settings/corners')).data;
+    commit('setSetupCorners',corners);
+  },
+  async getImages({commit}){
+    const images = (await axios('http://localhost/settings/images')).data;
+    commit('setSetupImages',images);
+  },
+  async getStitched({commit}){
+    const stitched = (await axios('http://localhost/settings/stitchimages')).data;
+    commit('setSetupStitched',stitched);
+  },
+  async refreshStitchmanState({commit,state}){
+    const newState = (await axios('http://localhost/state')).data;
+    if (!newState || !newState.state) throw new Error('invalid state');
+    if (newState.state !== state.stitchmanState){
+      commit('setStitchmanState',newState.state);
+    }
+  },
+  async startCasting(){
+    await axios.put('http://localhost/state',{state:'up'});
+  },
+  async stopCasting(){
+    await axios.put('http://localhost/state',{state:'down'});
+  },
+  async refreshUiState({commit,state,dispatch}, newState){
+    const uiState = newState || (await axios.get('http://localhost/settings/uiState')).data;
+    if (!uiState) throw new Error('invalid UI state');
+    if (uiState !== state.uiState){
+      switch(uiState){
+        case "pair":
+          // nothing need be done here
+          break;
+        case "corner":
+          //on entry get the websocket URLs
+          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getCorners');
+          break;
+        case "stitch":
+          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getImages');
+          break;
+        case "check":
+          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getStitched');
+          break;
+        case "running":
+          break;
+        case "busy":
+          break;
+        default:
+          console.log('uistate',uiState);
+          throw new Error('Unknown UI state!');
+      }
+      commit('setUiState',uiState);
+    }
+  },
+  async pairKaptivo({state, commit, dispatch}, {i, el}) {
     try {
-      let kap = await getKaptivo(kaptivoId);
-
-      let accessToken = null;
-      if (admin_name && admin_password) {
-        accessToken = await kap.authorize({scope: 'remote_config', admin_name, admin_password, iframe_parent:el});
-      } else {
-        accessToken = await kap.authorize({scope: 'pair', iframe_parent:el});
-      }
-
-      let pairing_description = 'Stitching Manager';
-      let paired_identity = g_systemId;
-
-      let pairingToken = null;
-      let path = '/api/v2/admin/pairing/instances';
-      let body = {
-        pairing_type: 'room',
-        enabled: true,
-        paired_identity,
-        pairing_description,
-        button_action: 'start_view_session',
-      };
-      try {
-        pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
-      } catch (err) {
-        console.log('zz: failed');
-        if (err.response && err.response.data && err.response.data.code === 'pair_instance_limit_reached') {
-          console.log('zz: delete pairings');
-          //! Delete existing 'room' pairing
-          path = '/api/v2/admin/pairing/instances';
-          let pairings = (await kap.apiGet({path, accessToken})).result;
-          for (let p of pairings) {
-            if (p.pairing_type === 'room') {
-              await kap.apiDelete({accessToken, path: '/api/v2/admin/pairing/instances/' + p.id});
-            }
-          }
-          //! ...and retry
-          console.log('zz: retry');
-          pairingToken = (await this.apiPost({path, accessToken, body})).result.pairing_token;
-        } else {
-          throw err;
-        }
-      }
-      return pairingToken;
-    } catch (err) {
-      if (err.user_message) {
-        throw new Error(err.user_message);
-      } else {
-        throw err;
-      }
+      const pairingToken = await doPair(state.kaptivos[i].id, state.adminNames[i], state.adminPasswords[i], el);
+      commit('setKaptivo', {i, obj: {pairingToken}});
+    } catch(e){
+      console.log(e);
+      dispatch('setMessage',{message: e.message || e.user_message || e, timeout:5000});
     }
   },
-
-  /**
-   *  Control Pad Mirroring
-   */
-  async startWatchingKaptivo ({state, commit}) {
+  async testCast({state, commit, dispatch}){
+    let err=null;
     try {
-      if (!g_watchingKaptivo && state.pairingToken) {
-        g_watchingKaptivo = true;
-        let kap = await getKaptivo();
-        while (g_watchingKaptivo) {
-          let path = `/api/v2/paired_service/controlpad?pairing_token=${state.pairingToken}`;
-          let controlPadStatus = (await kap.apiGet({path})).result;
-          if (JSON.stringify(state.controlPadStatus) !== JSON.stringify(controlPadStatus)) {
-            commit('setControlPadStatus', controlPadStatus);
-          }
-
-          path = `/api/v2/paired_service/observe?pairing_token=${state.pairingToken}`;
-          let observedStatus = (await kap.apiGet({path})).result;
-          if (state.sessionId !== observedStatus.session_id) {
-            try {
-              let sessionId = observedStatus.session_id;
-              let sessionToken = '';
-              let liveUrl = '';
-              let frameWidth = 0;
-              let frameHeight = 0;
-              if (sessionId) {
-                sessionToken = observedStatus.token;
-                path = `/api/v2/sessions/${sessionId}/content/liveview`;
-                let sessionInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
-                liveUrl = sessionInfo.websocket_rle_uri;
-                path = `/api/v2/sessions/${sessionId}/content`;
-                let contentInfo = (await kap.apiGet({path, accessToken: sessionToken})).result;
-                frameWidth = contentInfo.pixel_width;
-                frameHeight = contentInfo.pixel_height;
-              }
-              commit('setSessionStatus', {sessionId, sessionToken, liveUrl, frameWidth, frameHeight});
-            } catch (e) {
-              commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
-            }
-          }
-          if (0 < g_watchBoostCount) {
-            await sleep(200);
-            --g_watchBoostCount;
-          } else {
-            await sleep(1000);
-          }
-        }
-      }
-    } catch (err) {
-      console.log(err.user_message || err.toString());
-      if (err.user_message) {
-        throw new Error(err.user_message);
-      } else {
-        throw err;
-      }
-    } finally {
-      g_watchingKaptivo = false;
+      let castPingUrl = 'http://' + state.castIp + '/api/discovery/ping';
+      const ret = await axios.get(castPingUrl, {timeout: 5000});
+      if (ret.data && ret.data.result) {
+        if (ret.data.result.model === 'KC100') {
+          commit('setCastProven', true);
+        } else err=`Device at ${state.castIp} is not a KaptivoCast`;
+      } else err='No response from ' + state.castIp;
+    } catch(e){
+      err= e.message || e.user_message || e;
     }
+    if (err) dispatch('setMessage',{message: err, timeout:5000});
   },
-  async stopWatchingKaptivo ({state, commit}) {
-    g_watchingKaptivo = false;
+  async submitSettings({state,dispatch}){
+    await axios.put('http://localhost/settings', {
+      kaptivos: state.kaptivos,
+      castIp: state.castIp
+    });
+    await dispatch('refreshUiState');
   },
-  async pushControlPadButton ({state, commit}) {
-    try {
-      let kap = await getKaptivo();
-      let path = '/api/v2/paired_service/controlpad/input';
-      let body = { trigger: 'toggle_camera_enable', pairing_token: state.pairingToken };
-      g_watchBoostCount = 10; //! Make cp button status polling interval shorter to pick up the status change quickly
-      await kap.apiPut({path, body});
-    } catch (err) {
-      console.log(err.user_message || err.toString());
-      if (err.user_message) {
-        throw new Error(err.user_message);
-      } else {
-        throw err;
-      }
+  async setupBack({dispatch}){
+    const newState = (await (axios.post('http://localhost/settings/uistate',{action:'back'}))).data;
+    await dispatch('refreshUiState',newState);
+  },
+  async setupRefresh({dispatch}){
+    const newState = (await (axios.post('http://localhost/settings/uistate',{action:'refresh'}))).data;
+    switch(newState){
+      case "corner":
+        await dispatch('getCorners');
+        break;
+      case "stitch":
+        await dispatch('getImages');
+        break;
     }
+    await dispatch('refreshUiState',newState);
   },
-  async endKaptivoSession ({state, commit}) {
-    if (state.sessionId && state.sessionToken) {
-      try {
-        let kap = await getKaptivo();
-        let accessToken = state.sessionToken;
-        let path = `/api/v2/sessions/${state.sessionId}`;
-        await kap.apiDelete({path, accessToken});
-        commit('setSessionStatus', {sessionId: 0, sessionToken: '', liveUrl: '', frameWidth: 0, frameHeight: 0});
-      } catch (err) {
-        console.log(err.user_message || err.toString());
-        if (err.user_message) {
-          throw new Error(err.user_message);
-        } else {
-          throw err;
-        }
-      }
-    }
+  async setupNext({dispatch}){
+    const newState = (await (axios.post('http://localhost/settings/uistate',{action:'next'}))).data;
+    await dispatch('refreshUiState',newState);
   },
-
-
-}
+  async clearSettings({dispatch}){
+    await (axios.delete('http://localhost/settings'));
+    await dispatch('refreshUiState');
+  }
+});
 
 // mutations
 const mutations = {
-  setPairing(state, {kaptivoId, pairingToken}) {
-    state.kaptivoId = kaptivoId;
-    state.pairingToken = pairingToken;
-    localStorage.setItem(KAPTIVO_ID_KEY, kaptivoId);
-    localStorage.setItem(PAIRING_TOKEN_KEY, pairingToken);
+  setID(state, {i, kaptivoId}) {
+    if (i>=0 && i<state.kaptivos.length){
+      state.kaptivos[i].id=kaptivoId;
+    }
   },
-  setMirroringCp(state, mirroringCp) {
-    state.mirroringCp = !!mirroringCp;
+  setKaptivo(state, {i, obj}){
+    console.log('set kaptivo',i,obj);
+    if (i>=0 && i<state.kaptivos.length){
+      state.kaptivos[i]=Object.assign({},state.kaptivos[i], obj);
+      //this is to force a refresh
+      state.kaptivos = state.kaptivos.slice();
+    }
   },
-  setControlPadStatus(state, controlPadStatus) {
-    state.controlPadStatus = controlPadStatus;
+  setKaptivos(state,kaptivos){
+    state.kaptivos=kaptivos;
   },
-  setSessionStatus(state, {sessionId, sessionToken, liveUrl, frameWidth, frameHeight}) {
-    state.sessionId = sessionId;
-    state.sessionToken = sessionToken;
-    state.liveUrl = liveUrl;
-    state.frameWidth = frameWidth;
-    state.frameHeight = frameHeight;
+  setCastIp(state, castIp){
+    state.castIp=castIp;
+    state.castIpValid = typeof castIp ==="string" || /^[0-9]+(\.[0-9]+)$/.test(castIp);
   },
-}
+  setCastProven(state, proven){
+    state.castProven=proven;
+  },
+  setAdminName(state, {i,name}){
+    state.adminNames[i]=name;
+  },
+  setAdminPassword(state, {i,password}){
+    state.adminPasswords[i]=password;
+  },
+  setPairInProgress(state,val){
+    state.pairInProgress=val;
+  },
+  setUiState(state, val){
+    state.uiState = val;
+  },
+  setSetupLive(state, urls){
+    state.setupLive=urls;
+  },
+  setSetupCorners(state,corners){
+    state.setupCorners=corners;
+  },
+  setSetupImages(state,images){
+    state.setupImages = images;
+  },
+  setSetupStitched(state, stitched){
+    state.setupStitched=stitched;
+  },
+  setStitchmanState(state, stitchmanState){
+    state.stitchmanState=stitchmanState;
+  },
+  incBusy(state,busy){
+    state.busy++;
+  },
+  decBusy(state,busy){
+    state.busy--;
+    if (state.busy<0) state.busy=0;
+  },
+};
 
 export default {
   state,
   getters,
   actions,
   mutations
+}
+
+
+async function doPair(kaptivoId, admin_name, admin_password, el){
+  const kap = await getKaptivo(kaptivoId);
+  const accessToken = admin_name && admin_password ?
+    await kap.authorize({scope: 'remote_config', admin_name, admin_password, iframe_parent: el}) :
+    await kap.authorize({scope: 'pair', iframe_parent: el});
+  const pairing_description = 'Stitching Manager';
+  const paired_identity = g_systemId;
+  const path = '/api/v2/admin/pairing/instances';
+  const body = {
+    pairing_type: 'room',
+    enabled: true,
+    paired_identity,
+    pairing_description,
+    button_action: 'start_view_session',
+  };
+  let pairingToken;
+  try {
+    pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
+  } catch (err) {
+    if (err.response && err.response.data && err.response.data.code === 'pair_instance_limit_reached') {
+      //! Delete existing 'room' pairing
+      let pairings = (await kap.apiGet({path, accessToken})).result;
+      for (let p of pairings) {
+        if (p.pairing_type === 'room') {
+          await kap.apiDelete({accessToken, path: path + '/' + p.id});
+        }
+      }
+      //! ...and retry
+      pairingToken = (await kap.apiPost({path, accessToken, body})).result.pairing_token;
+    } else {
+      throw err;
+    }
+  }
+  return pairingToken;
 }
 

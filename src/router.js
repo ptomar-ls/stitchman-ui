@@ -1,10 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Home from './views/Home.vue'
-import Pair from './views/Pair.vue'
 import Settings from './views/Settings.vue'
+import Configure from './views/configure'
 
-Vue.use(Router)
+Vue.use(Router);
 
 export default new Router({
   routes: [
@@ -14,9 +14,9 @@ export default new Router({
       component: Home
     },
     {
-      path: '/pair',
-      name: 'pair',
-      component: Pair,
+      path: '/configure',
+      name: 'configure',
+      component: Configure,
     },
     {
       path: '/settings',

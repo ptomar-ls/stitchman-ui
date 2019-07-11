@@ -1,32 +1,29 @@
 <template>
   <div class="home">
-    <h3>{{kaptivoId}}</h3>
-    <control-pad></control-pad>
-    <div class="sessioninfo">
-      <div>session-id: {{sessionId}}</div>
-      <div>live-url: {{liveUrl}}</div>
-    </div>
-    <live-view :px-width="200" :px-height="150"></live-view>
+    <h3>{{kaptivos.map(k=>k.id).join(',')}}</h3>
+<!--    <control-pad></control-pad>-->
+<!--    <div class="sessioninfo">-->
+<!--      <div>kaptivos: {{}}</div>-->
+<!--    </div>-->
+<!--    <live-view :px-width="200" :px-height="150"></live-view>-->
   </div>
 </template>
 
 <script>
   import { mapGetters, mapActions } from 'vuex'
-  import ControlPad from '../components/ControlPad.vue'
-  import LiveView from '../components/LiveView.vue'
+  // import ControlPad from '../components/ControlPad.vue'
+  // import LiveView from '../components/LiveView.vue'
 
   export default {
     mounted() {
-      if (!this.isPaired) {
-        this.$router.push('pair');
+      if (!this.allPaired) {
+        this.$router.push('settings');
       }
     },
     computed: {
       ...mapGetters([
-        'kaptivoId',
-        'isPaired',
-        'liveUrl',
-        'sessionId',
+        'kaptivos',
+        'allPaired',
       ]),
     },
     methods: {
@@ -35,8 +32,8 @@
       ]),
     },
     components: {
-      ControlPad,
-      LiveView,
+      // ControlPad,
+      // LiveView,
     },
   }
 </script>
