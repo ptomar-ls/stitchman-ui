@@ -5,6 +5,7 @@
       <input type="button" :disabled="stitchmanState!=='idle'" class='button' value="Start Cast" @click="startCasting">
       <input type="button" :disabled="stitchmanState!=='live'" class='button' value="Stop Cast" @click="stopCasting">
     </div>
+    <canvas ref="live"></canvas>
     <div>
       <input type="button" :disabled="stitchmanState!=='idle'" class='button' value="Clear configuration" @click="clearSettings">
       <input type="button" :disabled="stitchmanState!=='idle'" class='button' value="Restitch" @click="setupRefresh">
@@ -14,22 +15,32 @@
 
 <script>
   import {mapGetters, mapActions} from 'vuex';
+  import {KLiveViewer} from '@lightblue/remote-frame-buffer';
   export default {
     name: "running",
     mounted(){
       this.startMon();
+      this.showLiveView();
     },
     destroyed(){
       this.stopMon();
+      this.clearLiveView();
     },
     data(){
       return {
         interval:null,
+        liveView:null,
+      }
+    },
+    watch:{
+      castLiveView(){
+        this.showLiveView();
       }
     },
     computed:{
       ...mapGetters([
-        'stitchmanState'
+        'stitchmanState',
+        'castLiveView',
       ]),
       state(){
         switch(this.stitchmanState){
@@ -57,6 +68,17 @@
       stopMon(){
         if (this.interval) clearInterval(this.interval);
         this.interval=null;
+      },
+      showLiveView(){
+        this.clearLiveView();
+        if (this.castLiveView){
+          this.liveView = new KLiveViewer(this.$refs.live, this.castLiveView);
+        }
+      },
+      clearLiveView(){
+        if (this.liveView) this.liveView.close();
+        this.liveView=null;
+        this.$refs.live.getContext('2d').clearRect(0,0,this.$refs.live.width, this.$refs.live.height)
       }
     }
   }
@@ -67,5 +89,9 @@
     font-size: x-large;
     padding: 20px;
     margin: 10px;
+  }
+  canvas {
+    width:100%;
+    box-shadow:0 0 5px #0003;
   }
 </style>

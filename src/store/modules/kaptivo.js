@@ -66,6 +66,7 @@ const state = {
   pairInProgress:false,
   stitchmanState:'',
   busy:0,
+  liveId:'',
 };
 
 // getters
@@ -85,6 +86,7 @@ const getters = {
   setupStitched: state=>state.setupStitched,
   stitchmanState: state=>state.stitchmanState,
   busy: state=>state.busy,
+  castLiveView: state=>!state.liveId?null:'ws://localhost/liveview/'+state.liveId,
 };
 
 function wrapActions(actions){
@@ -133,6 +135,11 @@ const actions = wrapActions({
     if (!newState || !newState.state) throw new Error('invalid state');
     if (newState.state !== state.stitchmanState){
       commit('setStitchmanState',newState.state);
+      if (newState.state === 'live'){
+        commit('setLiveId',(await axios('http://localhost/liveId')).data)
+      } else {
+        commit('setLiveId',null);
+      }
     }
   },
   async startCasting(){
@@ -282,13 +289,16 @@ const mutations = {
   setStitchmanState(state, stitchmanState){
     state.stitchmanState=stitchmanState;
   },
-  incBusy(state,busy){
+  incBusy(state){
     state.busy++;
   },
-  decBusy(state,busy){
+  decBusy(state){
     state.busy--;
     if (state.busy<0) state.busy=0;
   },
+  setLiveId(state, id){
+    state.liveId=id;
+  }
 };
 
 export default {

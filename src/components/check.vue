@@ -1,6 +1,7 @@
 <template>
   <div class="corners">
-    <h2>Check that the stitched .</h2>
+    <h2>Check that the stitched images overlap well.</h2>
+    <h3>Use the slider to swipe between images.  Click 'Done' if alignment is good or 'Back' to retry after modifying the board contents.</h3>
     <div class="container">
       <div class="innercontainer">
         <div class="kaptivocolumn" v-for="i of 2" :key="i">
@@ -8,14 +9,25 @@
         </div>
       </div>
       <div class="innercontainer">
-        <div class="kaptivocolumn" v-for="i of 2" :key="i">
-          <img ref="images" :src="setupStitched && setupStitched[i-1]">
-        </div>
-      </div>      <div class="next_button">
-      <input type="button" class='button' value="Prev" @click="setupBack">
-      <input type="button" class='button' value="Refresh" @click="setupRefresh">
-      <input type="button" class='button' value="Next" @click="setupNext">
-    </div>
+        <template v-for="(s,i) of setupStitched">
+          <span :key="i" :style="{height:s.height*8+'px', width:(s.widths[1]+s.widths[2])*8+'px', 'z-index':-i}">
+            <span v-for="(w,iw) of s.widths" :key="iw">
+              <span :style="{height:s.height*8+'px', width:(iw && w*8)+'px', 'text-align':'left'}">
+                <span :style="{height:s.height*8+'px', width:(iw===2?swipe:1)*w*8+'px', overflow:'hidden', transform:`translate(${iw?0:-w*8}px)`}">
+                  <img :style="{height:s.height*8+'px', left:-(iw===0?0:s.widths[0]+(iw===1?0:s.widths[1]))*8+'px'}" ref="images" :src="s.final">
+                </span>
+              </span>
+            </span>
+          </span>
+        </template>
+      </div>
+      <div class="swiper">
+        <input type="range" v-model="swipe" min="0" max="1" step="0.01">
+      </div>
+      <div class="next_button">
+        <input type="button" class='button' value="Prev" @click="setupBack">
+        <input type="button" class='button' value="Done" @click="setupNext">
+      </div>
     </div>
   </div>
 </template>
@@ -36,6 +48,7 @@
     data(){
       return {
         liveViewers:[],
+        swipe:0,
       }
     },
     computed:{
@@ -91,6 +104,11 @@
     justify-content: center;
   }
 
+  .innercontainer span, .innercontainer img{
+    display:inline-block;
+    position:relative;
+  }
+
   .kaptivocolumn {
     margin: 10px;
     border: solid black 1px;
@@ -122,5 +140,8 @@
     font-size: x-large;
     padding: 20px;
     margin: 10px;
+  }
+  .swiper input{
+    width:600px
   }
 </style>

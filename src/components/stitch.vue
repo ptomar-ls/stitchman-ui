@@ -1,6 +1,7 @@
 <template>
   <div class="corners">
     <h2>Add a large 'X' and 'O', above each other, in the area visible to both boards.</h2>
+    <h3>The images below show what will be used for stitching.  To update these images after changing the board contents click 'refresh'. Click 'next' once done.  If the found board-edges seem wrong click 'back'.</h3>
     <div class="container">
       <div class="innercontainer">
         <div class="kaptivocolumn" v-for="i of 2" :key="i">
@@ -13,7 +14,7 @@
         </div>
       </div>
       <div class="next_button">
-        <input type="button" class='button' value="Prev" @click="setupBack">
+        <input type="button" class='button' value="Back" @click="setupBack">
         <input type="button" class='button' value="Refresh" @click="setupRefresh">
         <input type="button" class='button' value="Next" @click="setupNext">
       </div>
