@@ -1,5 +1,5 @@
 <template>
-  <h1>Busy!</h1>
+  <h1>Please wait...</h1>
 </template>
 
 <script>

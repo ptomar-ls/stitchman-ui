@@ -78,7 +78,7 @@
       clearLiveView(){
         if (this.liveView) this.liveView.close();
         this.liveView=null;
-        this.$refs.live.getContext('2d').clearRect(0,0,this.$refs.live.width, this.$refs.live.height)
+        if(this.$refs.live)this.$refs.live.getContext('2d').clearRect(0,0,this.$refs.live.width, this.$refs.live.height)
       }
     }
   }

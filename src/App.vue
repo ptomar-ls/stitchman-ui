@@ -40,8 +40,11 @@
 
 </style>
 
-<style scoped>
+<style>
 
+  *{
+    box-sizing: border-box;
+  }
   #app {
     font-family: 'Avenir', Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -66,6 +69,8 @@
   #header {
     width: 100%;
     flex: 0 0 auto;
+    box-shadow: 5px 5px 10px #0003;
+    transition: box-shadow 0.3s;
     /*background-color: lime;*/
   }
 
@@ -73,6 +78,7 @@
     width: 100%;
     padding: 10px;
     flex: 1 1 auto;
+    overflow:auto;
     /*background-color: grey;*/
   }
 

@@ -104,21 +104,9 @@
     align-items: center;
     position:relative;
   }
-  .kaptivocolumn canvas{
-    width:420px;
-    height:270px;
-  }
-  .kaptivocolumn img{
-    width:420px;
-    height:270px;
-  }
-  .kaptivocolumn svg{
-    width:420px;
-    height:270px;
-    position:absolute;
-    fill:none;
-    stroke: green;
-    stroke-width: 10px;
+  .kaptivocolumn canvas, .kaptivocolumn img{
+    width:480px;
+    height:288px;
   }
   .button {
     font-size: x-large;

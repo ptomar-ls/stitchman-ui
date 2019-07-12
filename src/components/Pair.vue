@@ -4,11 +4,12 @@
     <div class="container">
 
       <div class="innercontainer">
-        <kap-pair class="kaptivocolumn" v-for="i of 2" :key="i" :index="i-1" ref="kapPair"></kap-pair>
+        <kap-pair class="kaptivocolumn" v-for="(label,i) of kapLabels" :key="i" :index="i" :label="label" ref="kapPair"></kap-pair>
 
         <div class="castcolumn" :class="{paired:castProven}">
           <div class="form">
             <form>
+              <h2>Kaptivo Cast</h2>
               <div class="formrow">
                 <div class="itemlabel">KaptivoCast IP Address</div>
                 <div class="itemvalue"><input type="text" :disabled="pairInProgress" v-model.trim="castIp" placeholder="(Required)"></div>
@@ -48,6 +49,7 @@
     },
     data() {
       return {
+        kapLabels:["Left Kaptivo","Right Kaptivo"]
       };
     },
     computed:{
@@ -113,18 +115,21 @@
     flex-wrap: nowrap;
     justify-content: flex-start;
     align-items: center;
+    overflow: auto;
     /*background-color: lime;*/
   }
 
   .innercontainer {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
   }
 
   .kaptivocolumn {
     margin: 10px;
-    border: solid black 1px;
+    box-shadow: 3px 3px 10px #0003;
+    padding: 10px;
     flex: 0 0  auto;
     display: flex;
     flex-direction: column;
@@ -144,7 +149,7 @@
 
   .castcolumn {
     margin: 10px;
-    border: solid black 1px;
+    box-shadow: 3px 3px 10px #0003;
     flex: 0 0  auto;
     display: flex;
     flex-direction: column;
@@ -155,7 +160,7 @@
   }
 
   .form {
-    margin: 30px;
+    margin: 0 20px 20px;
     /*background-color: yellow;*/
     width: 100%;
     flex: 0 0 auto;

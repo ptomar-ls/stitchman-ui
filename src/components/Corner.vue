@@ -1,6 +1,9 @@
 <template>
   <div class="corners">
     <h1>Ensure that board edges have been found.</h1>
+    <h2>The board should be fully visible between the views and board edges should be marked in green.
+      Inner edges are approximate and will be corrected later in the process.</h2>
+    <h2>Click 'Refresh' to recalculate the board edges or 'Next' if the edges have been correctly found.</h2>
     <div class="container">
       <div class="innercontainer">
         <div class="kaptivocolumn" v-for="i of 2" :key="i">
@@ -66,7 +69,7 @@
         'setupNext'
       ]),
       refreshPaths(){
-        this.paths=this.setupCorners && this.setupCorners.map(sc=>'M'+[0,1,3,2].map(i=>(sc[i].x+960)+','+(sc[i].y*1.06+455)).join('L')+'Z');
+        this.paths=this.setupCorners && this.setupCorners.map(sc=>'M'+[0,1,3,2].map(i=>(sc[i].x+960)+','+(sc[i].y+1152*0.4)).join('L')+'Z');
       },
       clearLiveViews(){
         while (this.liveViewers.length){
@@ -109,12 +112,12 @@
     position:relative;
   }
   .kaptivocolumn canvas{
-    width:420px;
-    height:270px;
+    width:480px;
+    height:288px;
   }
   .kaptivocolumn svg{
-    width:420px;
-    height:270px;
+    width:480px;
+    height:288px;
     position:absolute;
     fill:none;
     stroke: green;

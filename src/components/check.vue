@@ -8,21 +8,21 @@
           <canvas ref="canvas"></canvas>
         </div>
       </div>
+      <div class="swiper">
+        <span>Swipe between:</span>
+        <input type="range" v-model="swipe" min="0" max="1" step="0.01">
+        <span>Scale:</span>
+        <button @click="incScale">+</button>
+        <button @click="decScale">-</button>
+      </div>
       <div class="innercontainer">
-        <template v-for="(s,i) of setupStitched">
-          <span :key="i" :style="{height:s.height*8+'px', width:(s.widths[1]+s.widths[2])*8+'px', 'z-index':-i}">
-            <span v-for="(w,iw) of s.widths" :key="iw">
-              <span :style="{height:s.height*8+'px', width:(iw && w*8)+'px', 'text-align':'left'}">
-                <span :style="{height:s.height*8+'px', width:(iw===2?swipe:1)*w*8+'px', overflow:'hidden', transform:`translate(${iw?0:-w*8}px)`}">
-                  <img :style="{height:s.height*8+'px', left:-(iw===0?0:s.widths[0]+(iw===1?0:s.widths[1]))*8+'px'}" ref="images" :src="s.final">
-                </span>
-              </span>
+        <template v-for="s of previewImages">
+          <span :key="s.key" :style="s.imgContainerStyle">
+            <span :style="s.cropStyle">
+              <img :style="s.imgStyle" :src="s.final">
             </span>
           </span>
         </template>
-      </div>
-      <div class="swiper">
-        <input type="range" v-model="swipe" min="0" max="1" step="0.01">
       </div>
       <div class="next_button">
         <input type="button" class='button' value="Prev" @click="setupBack">
@@ -49,6 +49,7 @@
       return {
         liveViewers:[],
         swipe:0,
+        scale:12,
       }
     },
     computed:{
@@ -56,6 +57,23 @@
         'setupLive',
         'setupStitched',
       ]),
+      previewImages(){
+        return this.setupStitched.map((s,i)=>{
+          const imgStyle={height: `${s.height*this.scale}px`};
+          const cropStyle={
+            width:`${(s.widths[0]+s.widths[1]+s.widths[2]*this.swipe)*this.scale}px`,
+            transform:`translate(${-s.widths[0]*this.scale}px)`,
+            overflow:"hidden",
+            ...imgStyle};
+          const imgContainerStyle={
+            width:`${(s.widths[1]+s.widths[2])*this.scale}px`,
+            "z-index":-i,
+            "text-align":"left",
+            ...imgStyle
+          };
+          return {key:i, imgStyle, cropStyle, imgContainerStyle, final:s.final};
+        })
+      },
     },
     watch:{
       setupLive(){
@@ -79,7 +97,13 @@
         while (this.liveViewers.length){
           this.liveViewers.pop().close();
         }
-      }
+      },
+      incScale(){
+        this.scale+=this.scale<16?1:0;
+      },
+      decScale(){
+        this.scale-=this.scale>4?1:0;
+      },
     }
   }
 </script>
@@ -120,28 +144,30 @@
     align-items: center;
     position:relative;
   }
-  .kaptivocolumn canvas{
-    width:420px;
-    height:270px;
-  }
-  .kaptivocolumn img{
-    width:420px;
-    height:270px;
-  }
-  .kaptivocolumn svg{
-    width:420px;
-    height:270px;
-    position:absolute;
-    fill:none;
-    stroke: green;
-    stroke-width: 10px;
+  .kaptivocolumn canvas, .kaptivocolumn img{
+    width:480px;
+    height:288px;
   }
   .button {
     font-size: x-large;
     padding: 20px;
     margin: 10px;
   }
-  .swiper input{
-    width:600px
+  .swiper{
+    display:flex;
+    flex-direction:row;
+  }
+  .swiper span{
+    height:1.25em;
+    font-size:1.6em;
+    padding:0 0.2em 0 0.5em;
+  }
+  .swiper input[type="range"]{
+    width:30vw;
+    height:2em;
+  }
+  .swiper button{
+    width:2em;
+    height:2em;
   }
 </style>

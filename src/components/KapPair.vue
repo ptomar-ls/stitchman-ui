@@ -4,6 +4,7 @@
     <div :class="{auth:pairInProgress, paired}">
       <div class="form">
         <form>
+          <h2>{{label}}</h2>
           <div class="formrow">
             <div class="itemlabel">Kaptivo ID</div>
             <div class="itemvalue"><input type="text" :disabled="pairInProgress" v-model.trim="id" placeholder="(Required)"></div>
@@ -29,6 +30,7 @@
   export default {
     props:{
       index:Number,
+      label:String,
     },
     data(){
       return {
@@ -111,7 +113,7 @@
     font-size:64px;
   }
   .form {
-    margin: 30px;
+    margin: 0 20px 20px;
     /*background-color: yellow;*/
     width: 100%;
     flex: 0 0 auto;
