@@ -58,7 +58,8 @@
 <style scoped>
   .blocker{
     top:0;
-    position:absolute;
+    left:0;
+    position:fixed;
     width:100%;
     height:100%;
     cursor:wait;

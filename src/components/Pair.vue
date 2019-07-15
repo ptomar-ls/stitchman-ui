@@ -137,6 +137,10 @@
     justify-content: flex-start;
     align-items: center;
     position:relative;
+    transition: box-shadow 0.3s;
+  }
+  .kaptivocolumn.auth{
+    box-shadow: 9px 9px 20px #0005;
   }
   .paired::after{
     content:"\2713";

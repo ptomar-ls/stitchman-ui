@@ -1,7 +1,6 @@
 <template>
-  <div class="innercontainer">
 
-    <div :class="{auth:pairInProgress, paired}">
+    <div :class="{auth:thisPairInProgress, paired}">
       <div class="form">
         <form>
           <h2>{{label}}</h2>
@@ -22,7 +21,6 @@
       </div>
       <div class="authbox" ref="auth"></div>
     </div>
-  </div>
 </template>
 
 <script>
@@ -43,6 +41,9 @@
         "adminNames",
         "adminPasswords",
       ]),
+      data(){
+        return {thisPairInProgress:true}
+      },
       paired(){
         return !!this.kaptivos[this.index].pairingToken;
       },
@@ -86,24 +87,32 @@
         if (this.pairInProgress) return;
         this.setPairInProgress(true);
         this.setMessage({message:`Pairing with kaptivo ${this.id}`, timeout:5000});
-        await this.doPair();
-        this.setPairInProgress(false);
+        try{
+          await this.doPair()
+        } finally {
+          this.setPairInProgress(false);
+        }
       },
       async doPair(){
-        await this.pairKaptivo({i:this.index, el:this.$refs.auth})
+        this.thisPairInProgress = true;
+        try {
+          await this.pairKaptivo({i: this.index, el: this.$refs.auth});
+        } finally {
+          this.thisPairInProgress = false
+        }
       }
     },
     name: "KapPair"
   }
 </script>
 
-<style scoped>
-  .innercontainer {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
+<style>
+  .authbox iframe{
+    border:none;
   }
+</style>
 
+<style scoped>
   .paired::after{
     content:"\2713";
     position:absolute;
@@ -118,17 +127,21 @@
     width: 100%;
     flex: 0 0 auto;
   }
-  .auth .form{
-    display:none;
-  }
+
   .authbox{
-    width:427px;
-    height:265px;
+    width:100%;
+    height:100%;
+    background:white;
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:100;
     display:none;
   }
   .auth .authbox{
     display:block;
   }
+
 
   .formrow {
     display: flex;

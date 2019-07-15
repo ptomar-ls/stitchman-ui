@@ -8,9 +8,8 @@ const SYSTEMID_KEY = '__SYSTEM_ID__';
 
 //! Dev mode client token
 const DEV_CLIENT_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJjbGllbnQiOnsibmFtZSI6IkthcHRpdm8gTWFuYWdlciBEZXYgbW9kZSIsInJlZGlyZWN0X3VyaSI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4Mi9pbmRleC5odG1sIiwic2NvcGUiOlsiY2FwdHVyZSIsImxvY2FsX2NhcHR1cmUiLCJwYWlyIiwiZGlzY292ZXIiLCJyZW1vdGVfY29uZmlnIiwidmlldyIsImxvY2FsX3ZpZXciLCJtb25pdG9yIiwiY29udHJvbHBhZCJdfSwiaWF0IjoxNTIwODUyMzE1LCJpc3MiOiJrYXBwXzEifQ.cGBpxUCLnIQVnRo3EN0TQH_MhcSIsPoRdSYMDzmFZZJMYSVWEH-4dSsit581n-wDLPKi4uIU-Mhx6ssKuXaDhkJNfGOBf3KeHHsaxvHdV6LFY1R_tbyaz98Qg1cQwr1zKq6wTiqklXxqxX5zPhW9vUNPVCXfUbCjyNGAlxEGba5qPx8uWdhkf4_4w8JVnPPzEq9NJYgLFHObx0SJcyZRSoaV1A3RxHd9_ce2GxhTrdCANceSjx0q4ilUqp4DHwlfSuE5bo6KYivxmMzwanTrIRZ8U2f3AHBdjkOnhG1yQytaBgEXX4py6hsltRoTlelMEAGqnuTu7g-ufG_5HPgfVA';
-
 //! S3/CloudFront (zoomkaptivopoc/d3bbk8m2i8fdew.cloudfront.net) client token
-const PROD_CLIENT_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJjbGllbnQiOnsibmFtZSI6Ilpvb21Sb29tcyBLYXB0aXZvIFBPQyIsInJlZGlyZWN0X3VyaSI6Imh0dHBzOi8vZDNiYms4bTJpOGZkZXcuY2xvdWRmcm9udC5uZXQvaW5kZXguaHRtbCIsInNjb3BlIjpbInBhaXIiLCJkaXNjb3ZlciIsInJlbW90ZV9jb25maWciLCJ2aWV3IiwibG9jYWxfdmlldyIsImNvbnRyb2xwYWQiXX0sImlhdCI6MTUyMDg1MjMxNSwiaXNzIjoia2FwcF8xIn0.NKphpVl90dyF5G28hmPk87wl9UITIEwIMZlj9NN3o1trXqRhm_Tg1_ktQauEcS23-9zv2gQ1CifgpvVuYPzM3y1L5J2yhIK8gyP7SFkv4-5uHjl8LAMy3c8tW5o2VAv8Nyh1A_5dQuqW65jJQh61Gyr10Nbw6TzJgvS1atFI-WOs65BnYXLs7wDEDb72J--UK7TdWxr3W4gJTvHDKx0k1XVDwNN7Cj_d3ghDfB0Tpn3UQMnDceElWGXWbwBQEIAOZX--CuUemNEbSvxbq452uvzoXTMpx4UTIkl4NVVUW-GOFgs776hwqSod5b2f5_HZcxmOruvIbmDjrRqk_dxISw'
+const PROD_CLIENT_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJjbGllbnQiOnsibmFtZSI6IkthcHRpdm8gU3RpdGNoaW5nIE1hbmFnZXIiLCJyZWRpcmVjdF91cmkiOiJodHRwOi8vbG9jYWxob3N0L2luZGV4Lmh0bWwiLCJzY29wZSI6WyJjYXB0dXJlIiwibG9jYWxfY2FwdHVyZSIsInBhaXIiLCJkaXNjb3ZlciIsInJlbW90ZV9jb25maWciLCJ2aWV3IiwibG9jYWxfdmlldyIsIm1vbml0b3IiLCJjb250cm9scGFkIl19LCJpYXQiOjE1NjI5NDYwMDcsImlzcyI6ImthcHBfMSJ9.6QdIC0Drxdrv0a9bq-nvf8p-6xTzrkd5vGkT4Vm4XAhyaSjhXwssObDlG24N6LcHTVCWHwsds-yrASMoae8YOp5V-HxUJculFwfviKckFprtzcdGKyx3LztL1fR91v-dD66iCgowZFmYYwAw9-mAvLi2_CHyQUsugcZyyeIaFF_7ve2u3LacOzJmTqoQkiqgHo1E6aj718P1opJ6bNbdHn6g8jEP3lTIzoJBcMwIiNmom2kxR9Qj1IHiZfRYM3bKcAV1Wih6MfknT8FUFhVu8u-jP6CkXYLUOafltLsn3DvG6O2uyX1xv8WfbJ2eHHg3JGFltHYJBPRJX0ALDcpH4w'
 
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
@@ -105,10 +104,12 @@ function wrapActions(actions){
   return actions;
 }
 
+let busyProm=null;
+
 // actions
 const actions = wrapActions({
   async init({commit,dispatch}){
-    const rslt = await axios.get('http://localhost/settings');
+    const rslt = await axios.get('http://localhost/settings?_='+Date.now());
     if (rslt && rslt.data){
       commit('setCastIp',rslt.data.castIp || "");
       if (rslt.data.kaptivos && rslt.data.kaptivos.length===2) commit('setKaptivos',rslt.data.kaptivos);
@@ -116,27 +117,27 @@ const actions = wrapActions({
         await dispatch('testCast').catch(()=>{});
       }
     }
-    await dispatch('refreshUiState');
+    await dispatch('refreshUiState', true);
   },
   async getCorners({commit}){
-    const corners = (await axios('http://localhost/settings/corners')).data;
+    const corners = (await axios('http://localhost/settings/corners?_='+Date.now())).data;
     commit('setSetupCorners',corners);
   },
   async getImages({commit}){
-    const images = (await axios('http://localhost/settings/images')).data;
+    const images = (await axios('http://localhost/settings/images?_='+Date.now())).data;
     commit('setSetupImages',images);
   },
   async getStitched({commit}){
-    const stitched = (await axios('http://localhost/settings/stitchimages')).data;
+    const stitched = (await axios('http://localhost/settings/stitchimages?_='+Date.now())).data;
     commit('setSetupStitched',stitched);
   },
   async refreshStitchmanState({commit,state}){
-    const newState = (await axios('http://localhost/state')).data;
+    const newState = (await axios('http://localhost/state?_='+Date.now())).data;
     if (!newState || !newState.state) throw new Error('invalid state');
     if (newState.state !== state.stitchmanState){
       commit('setStitchmanState',newState.state);
       if (newState.state === 'live'){
-        commit('setLiveId',(await axios('http://localhost/liveId')).data)
+        commit('setLiveId',(await axios('http://localhost/liveId?_='+Date.now())).data)
       } else {
         commit('setLiveId',null);
       }
@@ -148,8 +149,14 @@ const actions = wrapActions({
   async stopCasting(){
     await axios.put('http://localhost/state',{state:'down'});
   },
+  async getSetupLive({commit}){
+    commit('setSetupLive',(await axios('http://localhost/settings/liveview?_='+Date.now())).data);
+  },
   async refreshUiState({commit,state,dispatch}, newState){
-    const uiState = newState || (await axios.get('http://localhost/settings/uiState')).data;
+    if (!newState && state.busy) return; //if this is a regular call and the system is busy, do nothing
+    const uiState = typeof newState === "string" ?
+      newState :
+      (await axios.get('http://localhost/settings/uiState?_='+Date.now())).data;
     if (!uiState) throw new Error('invalid UI state');
     if (uiState !== state.uiState){
       switch(uiState){
@@ -158,15 +165,15 @@ const actions = wrapActions({
           break;
         case "corner":
           //on entry get the websocket URLs
-          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getSetupLive');
           await dispatch('getCorners');
           break;
         case "stitch":
-          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getSetupLive');
           await dispatch('getImages');
           break;
         case "check":
-          commit('setSetupLive',(await axios('http://localhost/settings/liveview')).data);
+          await dispatch('getSetupLive');
           await dispatch('getStitched');
           break;
         case "running":
@@ -209,7 +216,7 @@ const actions = wrapActions({
       kaptivos: state.kaptivos,
       castIp: state.castIp
     });
-    await dispatch('refreshUiState');
+    await dispatch('refreshUiState', true);
   },
   async setupBack({dispatch}){
     const newState = (await (axios.post('http://localhost/settings/uistate',{action:'back'}))).data;
@@ -233,7 +240,7 @@ const actions = wrapActions({
   },
   async clearSettings({dispatch}){
     await (axios.delete('http://localhost/settings'));
-    await dispatch('refreshUiState');
+    await dispatch('refreshUiState', true);
   }
 });
 
