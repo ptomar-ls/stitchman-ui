@@ -32,6 +32,7 @@
     },
     data(){
       return {
+        thisPairInProgress:false
       }
     },
     computed:{
@@ -41,9 +42,6 @@
         "adminNames",
         "adminPasswords",
       ]),
-      data(){
-        return {thisPairInProgress:true}
-      },
       paired(){
         return !!this.kaptivos[this.index].pairingToken;
       },
